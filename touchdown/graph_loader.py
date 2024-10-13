@@ -29,6 +29,9 @@ class GraphLoader:
         self.graph = Graph()
         self.node_file = config.paths['node']
         self.link_file = config.paths['link']
+        print('Loading graph...')
+        print('Node file:', self.node_file)
+        print('Link file:', self.link_file)
 
     def construct_graph(self):
         with open(self.node_file) as f:

@@ -31,6 +31,7 @@ class Navigator(BaseNavigator):
         return random.choice(['forward', 'left', 'right', 'stop'])
 
     def get_dummy_image_feature(self, graph_state):
+        print(graph_state)
         panoid, heading = graph_state
        
         # dummy feature
@@ -51,7 +52,7 @@ class Navigator(BaseNavigator):
 if __name__ == '__main__':
     navigator = Navigator()
     navigator.navigate(
-        start_graph_state=('sbtZW9Akt4izrxdQRDPwMQ', 209), 
+        start_graph_state=('ChIJo0BPGZl-hYARkgJpLsjrtY4', 209), 
         show_info=True
     )
 

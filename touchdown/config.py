@@ -1,4 +1,4 @@
 paths = {
-    'node': './graph/nodes.txt',
-    'link': './graph/links.txt'
+    'node': './graph/our_graph/nodes.txt',
+    'link': './graph/our_graph/links.txt'
 }
