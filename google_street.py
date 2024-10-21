@@ -5,7 +5,8 @@ import math
 from tqdm import tqdm
 import folium
 import os
-from misc import visualize_with_folium, save_to_json
+from util import visualize_with_folium, save_to_json
+import matplotlib.pyplot as plt
 
 # use `setx GOOGLE_API_KEY "your_api_key"` in cmd to set the environment variable first
 API_KEY = os.environ.get('GOOGLE_API_KEY')
@@ -94,7 +95,7 @@ def filter_overlapping_points(snapped_points, min_distance):
 
 
 def draw_points(nearest_road_points, edges, show_placeId=False,):
-    import matplotlib.pyplot as plt
+    
     if show_placeId:
         places = set()
         for road in nearest_road_points.items():
@@ -192,7 +193,7 @@ def get_static_map_with_markers(api_key, center_lat, center_lon, coordinates_lis
 
 def connect_points(points, max_distance=0.0003) -> set: # naive implementation
     points_with_edges = []
-    edges = set()
+    edges = set() #1 
     for point in points.values():
         pos = (point['location']['latitude'], point['location']['longitude'])
         points_with_edges.append(point)
@@ -211,7 +212,7 @@ def connect_points(points, max_distance=0.0003) -> set: # naive implementation
                 break
             edge = (point['placeId'], placeId)
             edge = tuple(sorted(edge))
-            point['neighbors'].append(placeId)
+            point['neighbors'].append(placeId) # 2
             edges.add(edge)
             ctn += 1
     return edges, points
@@ -258,39 +259,39 @@ def generate_txt_file(nodes, edges, data_root=r'graph\our_graph'):
         
 if __name__ == "__main__":
 
-    # provie opposite corners of the area
-    corner1 = (37.870582, -122.272911)
-    corner2 = (37.873900, -122.268541)
-    step = 1e-4
+    # # provie opposite corners of the area
+    # corner1 = (37.870582, -122.272911)
+    # corner2 = (37.873900, -122.268541)
+    # step = 1e-4
 
-    sample_points = generate_points(corner1, corner2, step)
-    print(f"Number of sample points: {len(sample_points)}")
+    # sample_points = generate_points(corner1, corner2, step)
+    # print(f"Number of sample points: {len(sample_points)}")
 
 
-    points_metadata = {}
-    valid_points = []
-    for p in tqdm(sample_points):
-        metadata = get_street_view_metadata(API_KEY, p[0], p[1])
-        if metadata.get('status') == 'OK':
-            points_metadata[metadata['pano_id']] = metadata
-            location = metadata['location']
-            valid_points.append((location['lat'], location['lng']))
+    # points_metadata = {}
+    # valid_points = []
+    # for p in tqdm(sample_points):
+    #     metadata = get_street_view_metadata(API_KEY, p[0], p[1])
+    #     if metadata.get('status') == 'OK':
+    #         points_metadata[metadata['pano_id']] = metadata
+    #         location = metadata['location']
+    #         valid_points.append((location['lat'], location['lng']))
             
 
-    nearest_road_points = nearest_roads(API_KEY, valid_points)
-    save_to_json(nearest_road_points, 'dataset\\test_data\\nearest_roads.json')
+    # nearest_road_points = nearest_roads(API_KEY, valid_points)
+    # save_to_json(nearest_road_points, 'dataset\\test_data\\nearest_roads.json')
 
-    # with open('dataset\\test_data\\nearest_roads.json') as f:
-    #     nearest_road_points = json.load(f)
+    # # with open('dataset\\test_data\\nearest_roads.json') as f:
+    # #     nearest_road_points = json.load(f)
 
 
-    center_point = get_center_point(corner1, corner2)
-    filtered_points = filter_overlapping_points(nearest_road_points, 0.00015)
-    save_to_json(filtered_points, 'dataset\\test_data\\filtered_nearest_roads.json')
+    # center_point = get_center_point(corner1, corner2)
+    # filtered_points = filter_overlapping_points(nearest_road_points, 0.00015)
+    # save_to_json(filtered_points, 'dataset\\test_data\\filtered_nearest_roads.json')
     
     
-    # with open('dataset\\test_data\\filtered_nearest_roads.json') as f:
-    #     filtered_points = json.load(f)
+    with open('dataset/test_data/filtered_nearest_roads.json') as f:
+        filtered_points = json.load(f)
 
     edges, points_with_neighbor = connect_points(filtered_points)
     nodes_vis, edges_vis = convert_nodes_edges_to_vis(filtered_points, edges)
