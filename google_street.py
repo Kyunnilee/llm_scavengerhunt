@@ -7,12 +7,24 @@ import folium
 import os
 from util import visualize_with_folium, save_to_json
 import matplotlib.pyplot as plt
+from typing import *
 
 # use `setx GOOGLE_API_KEY "your_api_key"` in cmd to set the environment variable first
 API_KEY = os.environ.get('GOOGLE_API_KEY')
 
 
-def generate_points(corner1, corner2, step):
+def generate_points(corner1: Tuple[float, float], 
+                    corner2: Tuple[float, float], 
+                    step: float) -> List[Tuple[float, float]]:
+    '''
+    Generate random points in the rectangular area defined by two corners.
+
+    Args: 
+        corner1, corner2: (longtitude, latitude)
+        step: minimum step size in sampling points
+    Returns: 
+        List of tuples, each tuple is a generated coordinate in (longtitude, latitude) form.
+    '''
     x_min = min(corner1[0], corner2[0])
     x_max = max(corner1[0], corner2[0])
     y_min = min(corner1[1], corner2[1])
@@ -191,7 +203,27 @@ def get_static_map_with_markers(api_key, center_lat, center_lon, coordinates_lis
     else:
         return f"Error: Unable to retrieve map (Status code: {response.status_code})"
 
-def connect_points(points, max_distance=0.0003) -> set: # naive implementation
+def connect_points_1nn(
+        points: Dict[str, dict], 
+        max_distance: float=0.0003
+    ) -> Tuple[Set[Tuple[str, str]], dict]:
+
+    '''
+    Naive Implementation.
+    Connect points to its nearest neighbours, creating a graph with nodes and edges.
+    If distance > max_distance, reject this edge.
+    Each node can connect to at most 3 points.
+
+    Adds neighbour information to `points`.
+    
+    Args:
+        points: dict of points. key=pointid (string). value=dict (point info)
+        max_distance: max edge distance. if L2(point1, point2) > max_distance, reject this edge.
+    Returns:
+        edges: set of tuples, each connecting two pointid's.
+        points_with_edges: added neighbour information to point information in argument points.
+    '''
+
     points_with_edges = []
     edges = set() #1 
     for point in points.values():
@@ -217,6 +249,24 @@ def connect_points(points, max_distance=0.0003) -> set: # naive implementation
             ctn += 1
     return edges, points
 
+def connect_points_api(
+        points: Dict[str, dict], 
+    ) -> Tuple[Set[Tuple[str, str]], dict]:
+
+    '''
+    Connect points to its nearest neighbours, creating a graph with nodes and edges.
+    Adds neighbour information to `points`.
+    
+    Args:
+        points: dict of points. key=pointid (string). value=dict (point info)
+        max_distance: max edge distance. if L2(point1, point2) > max_distance, reject this edge.
+    Returns:
+        edges: set of tuples, each connecting two pointid's.
+        points_with_edges: added neighbour information to point information in argument points.
+    '''
+
+    pass
+
 def convert_nodes_edges_to_vis(nodes, edges):
     nodes_vis = []
     edges_vis = []
@@ -235,7 +285,7 @@ def convert_nodes_edges_to_vis(nodes, edges):
         })
     return nodes_vis, edges_vis
 
-def generate_txt_file(nodes, edges, data_root=r'graph\our_graph'):
+def generate_txt_file(nodes, edges, data_root='output/graph/our_graph'):
     nodes_list = []
     for node in nodes.values():
         for neighbor in node['neighbors']:
@@ -279,24 +329,33 @@ if __name__ == "__main__":
             
 
     # nearest_road_points = nearest_roads(API_KEY, valid_points)
-    # save_to_json(nearest_road_points, 'dataset\\test_data\\nearest_roads.json')
+    # save_to_json(nearest_road_points, 'output\\test_data\\nearest_roads.json')
 
-    # # with open('dataset\\test_data\\nearest_roads.json') as f:
+    # # with open('output\\test_data\\nearest_roads.json') as f:
     # #     nearest_road_points = json.load(f)
 
 
     # center_point = get_center_point(corner1, corner2)
     # filtered_points = filter_overlapping_points(nearest_road_points, 0.00015)
-    # save_to_json(filtered_points, 'dataset\\test_data\\filtered_nearest_roads.json')
+    # save_to_json(filtered_points, 'output\\test_data\\filtered_nearest_roads.json')
     
     
-    with open('dataset/test_data/filtered_nearest_roads.json') as f:
+    with open('output/test_data/filtered_nearest_roads.json') as f:
         filtered_points = json.load(f)
 
-    edges, points_with_neighbor = connect_points(filtered_points)
+    # convert to visualize function's format and visualize them
+    edges, points_with_neighbor = connect_points_1nn(filtered_points)
+
+    print(edges)
+    print(points_with_neighbor)
+    exit(0)
+
     nodes_vis, edges_vis = convert_nodes_edges_to_vis(filtered_points, edges)
     vis_result = visualize_with_folium(nodes_vis, edges_vis)
     vis_result.save('map.html') 
+
+    # save as touchdown format 
     generate_txt_file(points_with_neighbor, edges)
     
-    # get_static_map_with_markers(API_KEY, center_point[0], center_point[1], filtered_points_positions, size="1800x1200", filename="dataset\\test_data\\map_with_markers_filtered.png")
+    # get google map image
+    # get_static_map_with_markers(API_KEY, center_point[0], center_point[1], filtered_points_positions, size="1800x1200", filename="output\\test_data\\map_with_markers_filtered.png")

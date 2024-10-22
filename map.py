@@ -51,7 +51,7 @@ if __name__ == "__main__":
     longitude = -122.2527  # Replace with your desired longitude
     api_key = "AIzaSyDv1zr5JJYKjv3MGIeYNEe5n1nP4gv2SSY"  # Replace with your Google Maps API key
     headings = [0, 45 ,90, 135, 180, 225, 270, 315] # 8 inputs for llm
-    image_dir = "streetview_image"
+    image_dir = "output/streetview_image"
 
     for heading in headings:
         save_path = os.path.join(image_dir, f"view_{heading}.jpg")
