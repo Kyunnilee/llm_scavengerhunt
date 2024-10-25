@@ -119,7 +119,97 @@ def visualize_with_folium(nodes: List[dict],
             folium.CircleMarker(
                 location=[node['lat'], node['lon']],
                 radius=4,
-                popup=f"ID: {node['id']}<br>Tags: {node['tags'].__str__() if "tags" in node.keys() else ""}",
+                popup=f"ID: {node['id']}<br>Tags: {node['tags'].__str__() if 'tags' in node.keys() else ''}",
+                color='blue',
+                fill=True,
+                fill_color='skyblue'
+            ).add_to(m)
+        for edge in edges:
+            source_node = next(node for node in nodes if node['id'] == edge['source'])
+            target_node = next(node for node in nodes if node['id'] == edge['target'])
+            folium.PolyLine(
+                locations=[
+                    [source_node['lat'], source_node['lon']],
+                    [target_node['lat'], target_node['lon']]
+                ],
+                color='red',
+                weight=2,
+                opacity=0.8
+            ).add_to(m)
+    
+    else:
+        raise ValueError("Bad input type for (points_format)")
+
+    return m
+
+def visualize_with_folium_with_choose(nodes: List[dict], 
+                          edges: List[dict], 
+                          points_format="google") -> folium.Map:
+    '''
+    Visualizes a graph using folium. 
+    Reads nodes / edges format according to argument points_format (google / overpass)
+    Chosen nodes and edges are highlighted.
+
+    Args:
+        nodes (list): A list of node dictionaries, where each dictionary contains 
+                      'id', 'latitude', 'longitude', 'chosen', and optionally 'name' attributes.
+        edges (list): A list of edge dictionaries, where each dictionary contains 
+                      'source', 'target', 'weight' and 'chosen' attributes.
+        points_format (str): "google" | "overpass",  representing input format. 
+
+    Returns:
+        None
+    '''
+
+    if points_format == "google":
+
+        avg_lat = sum(node['latitude'] for node in nodes) / len(nodes)
+        avg_lon = sum(node['longitude'] for node in nodes) / len(nodes)
+
+        m = folium.Map(location=[avg_lat, avg_lon], zoom_start=15)
+
+        for node in nodes:
+            if node['chosen']:
+                color = 'red'
+            else:
+                color = 'blue'
+            folium.CircleMarker(
+                location=[node['latitude'], node['longitude']],
+                radius=5,
+                popup=f"ID: {node['id']}<br>Name: {node['name']}",
+                color=color,
+                fill=True,
+                fill_color=color
+            ).add_to(m)
+        for edge in edges:
+            source_node = next(node for node in nodes if node['id'] == edge['source'])
+            target_node = next(node for node in nodes if node['id'] == edge['target'])
+            if edge['chosen']:
+                color = 'red'
+            else:
+                color = 'black'
+            folium.PolyLine(
+                locations=[
+                    [source_node['latitude'], source_node['longitude']],
+                    [target_node['latitude'], target_node['longitude']]
+                ],
+                color=color,
+                weight=2,
+                opacity=0.8
+            ).add_to(m)
+        
+    elif points_format == "overpass":
+
+        avg_lat = sum(node['lat'] for node in nodes) / len(nodes)
+        avg_lon = sum(node['lon'] for node in nodes) / len(nodes)
+
+        m = folium.Map(location=[avg_lat, avg_lon], zoom_start=15)
+
+        for node in nodes:
+            folium.CircleMarker(
+                location=[node['lat'], node['lon']],
+                radius=4,
+                popup=f"ID: {node['id']}<br>Tags: {node['tags'].__str__() if 'tags' in node.keys() else ''}",
                 color='blue',
                 fill=True,
                 fill_color='skyblue'
