@@ -5,6 +5,7 @@ from map import get_street_view_image_url
 import os 
 import config.map_config as map_config
 import requests
+import time
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 
@@ -55,15 +56,16 @@ class Navigator(BaseNavigator):
         may need to change along if we are doing it the base64 encoding case 
         TODO: not stable yet!!
         ''' 
+        time.sleep(1) # tmp fix for the rate limit issue
         for chunk in self.client.send_message(bot=self.model, message=message, file_path=files, chatId=chat_id): 
             pass 
         return chunk 
     
     def parse_action(self, action_message: str):
         '''
-        match [forward, left, right, stop, LOST]
+        match [forward, left, right, stop, lost]
         '''
-        acton_space = ["forward", "left", "right", "stop", "LOST"]
+        acton_space = ["forward", "left", "right", "stop", "lost"]
         action_message = action_message.lower()
         for action in acton_space:
             if action in action_message:
@@ -178,7 +180,7 @@ class Navigator(BaseNavigator):
             if self.help_message: # is asking for help
                 message = self.get_navigation_instructions(self.help_message, phase="help")
                 self.help_message = None
-                move = self.get_navigation_action(None, message, mode=self.action_mode)
+                move = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, return_type="file_path")
                 message = self.get_navigation_instructions()
@@ -187,7 +189,7 @@ class Navigator(BaseNavigator):
             if move == 'stop': 
                 print("Action stop is chosen")
                 break
-            elif move == 'LOST':
+            elif move == 'lost':
                 self.help_message = self.ask_for_help(mode=self.action_mode)
             else:
                 self.step(move)
