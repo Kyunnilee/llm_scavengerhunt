@@ -1,3 +1,5 @@
 {
-    "mode": "human"
+    "mode": "human", 
+    "prompt": "The oracle agent prompt",
+    "question": "What is your question? Just put the question, don't give action this time."
 }

@@ -5,20 +5,27 @@ def get_street_view_image_url(lat, lon, api_key, heading):
     base_url = "https://maps.googleapis.com/maps/api/streetview"
     metadata_url = "https://maps.googleapis.com/maps/api/streetview/metadata"
     
-    params = {
-        "size": "640x640",  
+    meta_params = {
+        "location": f"{lat},{lon}",
+        "key": api_key,
+        "source": "outdoor"
+    }
+    
+    image_params = {
+        "size": "600x300",  
         "location": f"{lat},{lon}",  
         "key": api_key, 
         "fov": 90,  
         "heading": heading,  
-        "pitch": 0  
+        "pitch": 0,
+        "source": "outdoor"
     }
 
-    meta_response = requests.get(metadata_url, params=params)
+    meta_response = requests.get(metadata_url, params=meta_params)
 
     if meta_response.status_code == 200:
         metadata = meta_response.json()
-        if metadata["status"] == "OK":
+        if metadata.get('status') == 'OK':
             image_url = f"{base_url}?size=640x640&location={lat},{lon}&key={api_key}&fov=90&heading={heading}&pitch=0"
             print(f"Street View image URL for heading {heading}: {image_url}")
             return image_url
