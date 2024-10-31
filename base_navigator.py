@@ -74,6 +74,13 @@ class BaseNavigator:
         if next_heading is None:
             next_heading = curr_heading
         return next_heading
+    
+    def fix_heading(self, curr_state):
+        '''Fix the heading of the current state based on the pano_yaw_angle of the current node.'''
+        panoid, heading = curr_state
+        curr_node = self.graph.nodes[panoid]
+        new_heading = self._get_nearest_heading(curr_state, curr_node, 'forward')
+        return panoid, new_heading
 
     def get_available_next_moves(self, graph_state):
         '''Given current node, get available next actions and states.'''
@@ -87,11 +94,29 @@ class BaseNavigator:
 
     def show_state_info(self, graph_state):
         '''Given a graph state, show current state information and available next moves.'''
-        print('Current graph state: {}'.format(graph_state))
+        message = 'Current graph state: {}'.format(graph_state)
+        # print('Current graph state: {}'.format(graph_state))
         available_actions, next_graph_states = self.get_available_next_moves(graph_state)
 
-        print('Available next actions and graph states:')
+        # print('Available next actions and graph states:')
+        message += '\nAvailable next actions and graph states:'
         for action, next_graph_state in zip(available_actions, next_graph_states):
-            print('Action: {}, to graph state: {}'.format(action, next_graph_state))
-        print('==============================')
+            # print('Action: {}, to graph state: {}'.format(action, next_graph_state))
+            if action == 'forward':
+                message += f'\nAction: {action}, to graph state: {next_graph_state}'
+            else:
+                message += f'\nAction: {action}, heading: {next_graph_state[1]}'
+        # print('==============================')
+        print(message)
+        return message
+        
+    def get_state_edges(self, graph_state):
+        '''Given a graph state, return the edges of the current node.'''
+        panoid, heading = graph_state
+        edges = self.graph.nodes[panoid].neighbors
+        message = f'Edges of node {panoid}:'
+        for heading, node in edges.items():
+            message += f'\nHeading: {heading}, node: {node.panoid}, lat: {node.coordinate[0]}, lng: {node.coordinate[1]}'
+        print(message)
+        return message
 

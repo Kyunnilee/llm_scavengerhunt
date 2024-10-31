@@ -82,14 +82,27 @@ class Graph:
     def get_txt_file(self, save_root):
         node_file = os.path.join(save_root, 'nodes.txt')
         link_file = os.path.join(save_root, 'links.txt')
+        
+        node_added = set()
+        edge_added = set()
         with open(node_file, 'w') as f:
             for node_id in self.nodes:
                 node:Node = self.nodes[node_id]
-                f.write(f'{node_id},{node.pano_yaw_angle},{node.coordinate[0]},{node.coordinate[1]}\n')
+                if node.neighbors == {}:
+                    print(f'Node {node_id} has no neighbors.')
+                if node_id not in node_added:
+                    f.write(f'{node_id},{node.pano_yaw_angle},{node.coordinate[0]},{node.coordinate[1]}\n')
+                    node_added.add(node_id)
+                    
         with open(link_file, 'w') as f:
             for node_id in self.nodes:
                 for heading, end_node in self.nodes[node_id].neighbors.items():
-                    f.write(f'{node_id},{heading},{end_node.panoid}\n')
+                    edge = tuple(sorted(node_id, end_node.panoid))
+                    if edge not in edge_added:  
+                        f.write(f'{node_id},{heading},{end_node.panoid}\n')
+                        edge_added.add(edge)
+                    else:
+                        print(f'Edge {edge} already added.')
                     
         print(f'Nodes file saved to {node_file}')
         print(f'Links file saved to {link_file}')
