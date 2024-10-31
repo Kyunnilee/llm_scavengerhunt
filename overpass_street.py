@@ -91,11 +91,11 @@ def export_touchdown_txt(folder_path, nodes, edges):
 
     with open(nodes_txt, "w") as fileobj:
         for node in nodes:
-            fileobj.write(f"{node["id"]},0,{node["lat"]},{node["lon"]}\n")
+            fileobj.write(f"{node['id']},0,{node['lat']},{node['lon']}\n")
     
     with open(links_txt, "w") as fileobj:
         for edge in edges:
-            fileobj.write(f"{edge["source"]},0,{edge["target"]}\n")
+            fileobj.write(f"{edge['source']},0,{edge['target']}\n")
 
 
 if __name__ == "__main__":

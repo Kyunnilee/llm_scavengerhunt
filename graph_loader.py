@@ -1,6 +1,6 @@
 import sys
 import os
-import touchdown.config as config
+import config.map_config as config
 
 
 class Node:
@@ -21,7 +21,13 @@ class Graph:
     def add_edge(self, start_panoid, end_panoid, heading):
         start_node = self.nodes[start_panoid]
         end_node = self.nodes[end_panoid]
+        # if not start_node.neighbors[heading]:
         start_node.neighbors[heading] = end_node
+        # else:
+        #     raise ValueError(f'Edge {start_panoid} -> {end_panoid} already exists.')
+        
+    def get_node_coordinates(self, node_id):
+        return self.nodes[node_id].coordinate
 
 
 class GraphLoader:
@@ -41,12 +47,15 @@ class GraphLoader:
         with open(self.node_file) as f:
             for line in f:
                 panoid, pano_yaw_angle, lat, lng = line.strip().split(',')
+                
+                pano_yaw_angle = 0 # set all pano_yaw_angle to 0. The heading of node will be determined at runtime.
                 self.graph.add_node(panoid, int(pano_yaw_angle), float(lat), float(lng))
 
         with open(self.link_file) as f:
             for line in f:
                 start_panoid, heading, end_panoid = line.strip().split(',')
                 self.graph.add_edge(start_panoid, end_panoid, int(heading))
+                self.graph.add_edge(end_panoid, start_panoid, (int(heading) + 180) % 360)
 
         num_edges = 0
         for panoid in self.graph.nodes.keys():
