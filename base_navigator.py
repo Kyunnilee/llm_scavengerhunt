@@ -107,7 +107,7 @@ class BaseNavigator:
             else:
                 message += f'\nAction: {action}, heading: {next_graph_state[1]}'
         # print('==============================')
-        print(message)
+        # print(message)
         return message
         
     def get_state_edges(self, graph_state):
@@ -117,6 +117,6 @@ class BaseNavigator:
         message = f'Edges of node {panoid}:'
         for heading, node in edges.items():
             message += f'\nHeading: {heading}, node: {node.panoid}, lat: {node.coordinate[0]}, lng: {node.coordinate[1]}'
-        print(message)
+        # print(message)
         return message
 
