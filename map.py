@@ -40,7 +40,7 @@ def get_street_view_image_url(lat, lon, api_key, heading):
 if __name__ == "__main__":
     latitude = 37.869545  
     longitude = -122.2527 
-    api_key=os.get_env('GOOGLE_MAP_API_KEY')
+    api_key=os.environ.get('GOOGLE_API_KEY')
     headings = [0, 45, 90, 135, 180, 225, 270, 315]  
     for heading in headings:
-        get_street_view_image_url(latitude, longitude, api_key, heading)
+        print(get_street_view_image_url(latitude, longitude, api_key, heading))
