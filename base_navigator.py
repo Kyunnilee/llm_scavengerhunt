@@ -1,6 +1,10 @@
 import os
 from graph_loader import GraphLoader
 
+turn_around_angle_limit = 60
+TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), int(180+1+turn_around_angle_limit/2))
+LEFT_RIGHT_RANGE = range(1, int(180-turn_around_angle_limit/2))
+
 
 class BaseNavigator:
     def __init__(self):
@@ -15,16 +19,21 @@ class BaseNavigator:
     def step(self, go_towards):
         '''
         Execute one step and update the state. 
-        go_towards: ['forward', 'left', 'right']
+        go_towards: ['forward', 'left', 'right', 'turn_around']
         '''
+        available_actions, _ = self.get_available_next_moves(self.graph_state)
+        if go_towards not in available_actions:
+            # print(f'Invalid action: {go_towards}.')
+            return f'Invalid action: {go_towards}.'
+        
         next_panoid, next_heading = self._get_next_graph_state(self.graph_state, go_towards)
-
         if len(self.graph.nodes[next_panoid].neighbors) < 2:
             # stay still when running into the boundary of the graph
-            print(f'At the border (number of neighbors < 2). Did not go "{go_towards}".')
-            return
+            # print(f'At the border (number of neighbors < 2). Did not go "{go_towards}".')
+            return f'At the border (number of neighbors < 2). Did not go "{go_towards}".'
         self.prev_graph_state = self.graph_state
         self.graph_state = (next_panoid, next_heading)
+        return ""
         
     def _get_next_graph_state(self, curr_state, go_towards):
         '''Get next state without changing the current state.'''
@@ -38,7 +47,7 @@ class BaseNavigator:
             else:
                 # weird node, stay put
                 next_node = self.graph.nodes[curr_panoid]
-        elif go_towards == 'left' or go_towards == 'right':
+        elif go_towards == 'left' or go_towards == 'right' or go_towards == 'turn_around':
             # if turn left or right, stay at the same node 
             next_node = self.graph.nodes[curr_panoid]
         else:
@@ -47,20 +56,42 @@ class BaseNavigator:
         next_panoid = next_node.panoid
         next_heading = self._get_nearest_heading(curr_state, next_node, go_towards)
         return next_panoid, next_heading
-
-    def _get_nearest_heading(self, curr_state, next_node, go_towards):
-        _, curr_heading = curr_state
-        next_heading = None
-
-        diff = float('inf')
+    
+    def _check_action_validity(self, curr_state, go_towards):
+        '''
+        check [left, right, turn_around] action validity. If there is node in the limit range, return True.
+        assume forward action is always valid.
+        '''
+        curr_panoid, curr_heading = curr_state
+        current_node = self.graph.nodes[curr_panoid]
+        _, diff = self._get_nearest_heading_and_diff(curr_state, current_node, go_towards)
+        if go_towards == 'turn_around':
+            return diff in TURN_AROUND_RANGE
+        elif go_towards == 'left' or go_towards == 'right':
+            return diff in LEFT_RIGHT_RANGE
+        else:
+            raise ValueError('Invalid action or try to check forward action.')
+        
+    def _get_diff_func(self, go_towards):
         if go_towards == 'forward':
             diff_func = lambda next_heading, curr_heading: 180 - abs(abs(next_heading - curr_heading) - 180)
         elif go_towards == 'left':
             diff_func = lambda next_heading, curr_heading: (curr_heading - next_heading) % 360
         elif go_towards == 'right':
             diff_func = lambda next_heading, curr_heading: (next_heading - curr_heading) % 360
+        elif go_towards == 'turn_around':
+            diff_func = lambda next_heading, curr_heading: 180 - abs(abs(next_heading - curr_heading) - 180)
         else:
-            return curr_heading
+            raise ValueError('Invalid action.')
+        return diff_func
+        
+    
+    def _get_nearest_heading(self, curr_state, next_node, go_towards):
+        _, curr_heading = curr_state
+        next_heading = None
+
+        diff = float('inf')
+        diff_func = self._get_diff_func(go_towards)
 
         for heading in next_node.neighbors.keys():
             if heading == curr_heading and go_towards != 'forward':
@@ -75,6 +106,26 @@ class BaseNavigator:
             next_heading = curr_heading
         return next_heading
     
+    def _get_nearest_heading_and_diff(self, curr_state, next_node, go_towards):
+        _, curr_heading = curr_state
+        next_heading = None
+
+        diff = float('inf')
+        diff_func = self._get_diff_func(go_towards)
+
+        for heading in next_node.neighbors.keys():
+            if heading == curr_heading and go_towards != 'forward':
+                # don't match to the current heading when turning
+                continue
+            diff_ = diff_func(int(heading), int(curr_heading))
+            if diff_ < diff:
+                diff = diff_
+                next_heading = heading
+
+        if next_heading is None:
+            next_heading = curr_heading
+        return next_heading, diff
+    
     def fix_heading(self, curr_state):
         '''Fix the heading of the current state based on the pano_yaw_angle of the current node.'''
         panoid, heading = curr_state
@@ -84,13 +135,19 @@ class BaseNavigator:
 
     def get_available_next_moves(self, graph_state):
         '''Given current node, get available next actions and states.'''
-        next_actions = ['forward', 'left', 'right']
-        next_graph_states = [
-            self._get_next_graph_state(graph_state, 'forward'),
-            self._get_next_graph_state(graph_state, 'left'),
-            self._get_next_graph_state(graph_state, 'right')
-        ]
-        return next_actions, next_graph_states
+        next_actions = ['forward', 'left', 'right', 'turn_around']
+        available_actions = []
+        available_next_states = []
+        for action in next_actions:
+            if action == 'forward':
+                available_actions.append(action)
+                available_next_states.append(self._get_next_graph_state(graph_state, action))
+            elif action == 'left' or action == 'right' or action == 'turn_around':
+                if self._check_action_validity(graph_state, action):
+                    available_actions.append(action)
+                    available_next_states.append(self._get_next_graph_state(graph_state, action))
+                
+        return available_actions, available_next_states
 
     def show_state_info(self, graph_state):
         '''Given a graph state, show current state information and available next moves.'''

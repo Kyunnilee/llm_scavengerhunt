@@ -11,23 +11,23 @@ def get_street_view_image_url(lat, lon, api_key, heading):
         "source": "outdoor"
     }
     
-    image_params = {
-        "size": "600x300",  
-        "location": f"{lat},{lon}",  
-        "key": api_key, 
-        "fov": 90,  
-        "heading": heading,  
-        "pitch": 0,
-        "source": "outdoor"
-    }
+    # image_params = {
+    #     "size": "600x300",  
+    #     "location": f"{lat},{lon}",  
+    #     "key": api_key, 
+    #     "fov": 90,  
+    #     "heading": heading,  
+    #     "pitch": 0,
+    #     "source": "outdoor"
+    # }
 
     meta_response = requests.get(metadata_url, params=meta_params)
 
     if meta_response.status_code == 200:
         metadata = meta_response.json()
         if metadata.get('status') == 'OK':
-            image_url = f"{base_url}?size=640x640&location={lat},{lon}&key={api_key}&fov=90&heading={heading}&pitch=0"
-            print(f"Street View image URL for heading {heading}: {image_url}")
+            image_url = f"{base_url}?size=300x300&location={lat},{lon}&key={api_key}&fov=90&heading={heading}&pitch=0&source=outdoor"
+            # print(f"Street View image URL for heading {heading}: {image_url}")
             return image_url
         else:
             print(f"Street View imagery is NOT available for heading {heading}.")

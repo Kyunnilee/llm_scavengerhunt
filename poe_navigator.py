@@ -6,6 +6,7 @@ import os
 import config.map_config as map_config
 import requests
 import time
+import re
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 
@@ -65,9 +66,15 @@ class Navigator(BaseNavigator):
         '''
         match [forward, left, right, stop, lost]
         '''
-        acton_space = ["forward", "left", "right", "stop", "lost"]
-        action_message = action_message.lower()
-        for action in acton_space:
+        acton_space = ["forward", "left", "right", "turn_around", "stop", "lost"]
+    
+        match = re.search(r'\[Action:\s*(.*?)\]', action_message)
+        if match: # try to match `[Action: ...]` first
+            print(f"Match: {match.group(1)}")
+            action = match.group(1)
+            if action in acton_space:
+                return action
+        for action in acton_space: # if not matched, try to directly match the action in the message
             if action in action_message:
                 return action
         
@@ -78,34 +85,38 @@ class Navigator(BaseNavigator):
             panoid, heading = self.graph_state 
             lat, lon = self.graph.get_node_coordinates(panoid)
             message = f"You are currently at {lat}, {lon} facing {heading}."
-            message += "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right."
+            message += "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images."
             # message2 = "You can go through the following directions, to the new nodes: " + self.get_state_edges(self.graph_state)
             message3 = "You can take following action: " + self.show_state_info(self.graph_state)
-            message += message3
+            message4 = "Action: lost, ask for help.\nAction: stop, end the navigation."
+            
+            message += '\n' + message3 + '\n' + message4
         elif phase == "help":
             message = help_message
             
-        if self.show_info:
-            print("="*50, "[get_navigation_instructions]")
-            print("Getting navigation instructions")
-            print(f"Message: {message}")
-            print("="*50)
+        # if self.show_info:
+        #     print("*"*50, "[get_navigation_instructions] System:")
+        #     print("Getting navigation instructions")
+        #     print(f"Message: {message}")
+        #     print("*"*50)
         return message
     
     def get_navigation_action(self, image_features: str, message: str, mode="poe_send_message"):
         if self.show_info:
-            print("="*50, "[get_navigation_action]")
+            print("*"*50, "[get_navigation_action] System input:")
             print("Getting navigation action")
             print(f"Message: {message}")
             print(f"Image features: {image_features}")
+            print("*"*50)
             
         if mode == "poe_send_message":
             chunk = self.send_message(message=message, files=image_features, chat_id=self.chat_id)
             action_message = chunk["text"]
             action = self.parse_action(action_message)
             if self.show_info:
-                print(f"[get_navigation_action]Action message: {action_message}")
-                print(f"[get_navigation_action]Action: {action}")
+                print("="*50, "[get_navigation_action] Agent output:")
+                print(f"Action message: {action_message}")
+                print(f"Action: {action}")
                 print("="*50)
         elif mode == "human":
             action = input("Enter the move: ")
@@ -126,7 +137,9 @@ class Navigator(BaseNavigator):
         panoid, heading = graph_state
         lat, lon = self.graph.nodes[panoid].coordinate
         if self.show_info:
+            print("*"*50, "[get_image_feature] System:")
             print(f"Getting image features for {lat}, {lon} facing {heading}")
+            print("*"*50)
 
         image_urls = []
         offsets = [-90, -45, 0, 45, 90]
@@ -134,6 +147,7 @@ class Navigator(BaseNavigator):
             heading_image = (heading + offset) % 360
             image_url = get_street_view_image_url(lat, lon, api_key, heading_image)
             image_urls.append(image_url)
+            
         if return_type == "url":
             return image_urls
         elif return_type == "file_path":
@@ -142,9 +156,9 @@ class Navigator(BaseNavigator):
                 heading_image = (heading + offsets[i]) % 360
                 image_path = os.path.join(self.image_root, f"{panoid}_{heading_image}.jpg")
                 download_image(url, image_path)
-                image_paths.append(image_path)
-            # return image_paths
-            return [image_paths[2]]  # TODO poe: Message or attachment too large. Only sending the front image.
+                image_paths.append(image_path)            
+            return image_paths
+            # return [image_paths[1], image_paths[2], image_paths[3]]  # TODO poe: Message or attachment too large. Only sending the front image.
         '''
         doc mentioned that this was necessary to align the heading of the panorama with the actual heading of the image but if we using url then ?? 
         # shift_angle = 157.5 + self.graph.nodes[panoid].pano_yaw_angle - heading 
@@ -180,22 +194,24 @@ class Navigator(BaseNavigator):
             if self.help_message: # is asking for help
                 message = self.get_navigation_instructions(self.help_message, phase="help")
                 self.help_message = None
-                move = self.get_navigation_action([], message, mode=self.action_mode)
+                action = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, return_type="file_path")
                 message = self.get_navigation_instructions()
-                move = self.get_navigation_action(image_urls, message, mode=self.action_mode)
+                action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
                 
-            if move == 'stop': 
+            if action == 'stop': 
                 print("Action stop is chosen")
                 break
-            elif move == 'lost':
+            elif action == 'lost':
                 self.help_message = self.ask_for_help(mode=self.action_mode)
             else:
-                self.step(move)
-                
-            if show_info: 
-                self.show_state_info(self.graph_state) 
+                err_message = self.step(action)
+                if err_message != '':  # if has err, pass err message as help message
+                    self.help_message = err_message
+                                    
+            # if show_info: 
+            #     print(self.show_state_info(self.graph_state))
     
 class Oracle: 
     def __init__(self, oracle_config: dict): 
@@ -212,13 +228,35 @@ class Oracle:
             answer = input("Enter the answer: ")
         return answer
         
+def show_graph_info(graph):
+    max_neighbors = 0
+    max_neighbors_node = None
+    for node in graph.nodes.values():
+        neighbors_num = len(node.neighbors)
+        if neighbors_num > max_neighbors:
+            max_neighbors = neighbors_num
+            max_neighbors_node = node
+    print(f"Max neighbors: {max_neighbors}, node: {max_neighbors_node.panoid}")
+            
+            
+
 if __name__ == "__main__":   
-    # navi_config = r"config\human_test_navi.json"
-    navi_config = r"config\poe_test_navi.json"
+    navi_config = r"config\human_test_navi.json"
+    # navi_config = r"config\poe_test_navi.json"
     oracle_config = r"config\human_test_oracle.json"
     
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, show_info=True)
+    # show_graph_info(navigator.graph)
     navigator.forward(
-        start_graph_state=('HgFMRzAguxKiBHkwCQ_TgQ', 0), 
+        start_graph_state=('JEDrZGjSldMduPGNesgnuA', 0), 
         show_info=True
     )
+    '''
+    TODO 
+    - add openai mode
+    - fix action space algo [ok]
+    - fix map loader/itself
+    - experiment, prompt.......
+    - move prompt stuff to config json file
+    '''
+    
