@@ -21,6 +21,10 @@ class Graph:
     def _add_edge(self, start_panoid, end_panoid, heading):
         start_node = self.nodes[start_panoid]
         end_node = self.nodes[end_panoid]
+        heading = math.atan2(
+            end_node.coordinate[1] - start_node.coordinate[1], 
+            end_node.coordinate[0] - start_node.coordinate[0]
+        ) / math.pi * 180
         start_node.neighbors[heading] = end_node
         
     def add_node(self, panoid, lat, lng):
@@ -140,7 +144,8 @@ class GraphLoader:
 if __name__ == "__main__":
     import random
     from util import visualize_with_folium_with_choose
-    config = {'node': r'touchdown\graph\our_graph\nodes.txt','link': r'touchdown\graph\our_graph\links.txt'}
+    config = {'node': r'..\output\overpass_streetmap\touchdown\nodes.txt',
+              'link': r'..\output\overpass_streetmap\touchdown\links.txt'}
     graph = GraphLoader(config).construct_graph()
     chosen_nodes = random.sample(list(graph.nodes.keys()), 5)
     print(chosen_nodes)
@@ -148,6 +153,6 @@ if __name__ == "__main__":
     # print(nodes_vis)
     # print(edges_vis)
     v = visualize_with_folium_with_choose(nodes_vis, edges_vis)
-    v.save(r'tmp/tmp.html')
-    graph.get_txt_file(r"tmp")
+    v.save(r'./tmp.html')
+    # graph.get_txt_file(r"tmp")
 
