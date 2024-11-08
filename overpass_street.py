@@ -113,5 +113,5 @@ if __name__ == "__main__":
     # By validation, most nodes will work!
     # We can use tabi's tool to prune points if it don't work as well!
 
-    # map_object = util.visualize_with_folium(nodes, edges, points_format="overpass")
-    # map_object.save("./output/overpass_streetmap/map.html")
+    map_object = util.visualize_with_folium(nodes, edges, points_format="overpass")
+    map_object.save("./output/overpass_streetmap/map.html")

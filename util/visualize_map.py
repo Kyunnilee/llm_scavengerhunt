@@ -4,7 +4,10 @@ import folium
 import networkx as nx
 import matplotlib.pyplot as plt
 import json
+import pandas as pd
+import os
 from typing import *
+from tqdm import tqdm
 
 
 def build_graph_networkx(nodes: dict, edges: dict):
@@ -239,23 +242,80 @@ def save_to_json(data, filename='nearest_roads.json'):
     print(f"Data saved to {filename}")
 
 
+def visualize_touchdown(folder_path, output_html="network_map.html"):
+    nodes_file = folder_path + "/" + "nodes.txt"
+    links_file = folder_path + "/" + "links.txt"
+    
+    nodes_df = pd.read_csv(nodes_file, header=None, names=["id", "unused", "lat", "lon"])
+    nodes_df.drop(columns=["unused"], inplace=True)
+
+    links_df = pd.read_csv(links_file, header=None, names=["id1", "unused", "id2"])
+    links_df.drop(columns=["unused"], inplace=True)
+
+    if not nodes_df.empty:
+        map_center = [nodes_df["lat"].mean(), nodes_df["lon"].mean()]
+    else:
+        map_center = [0, 0]
+
+    folium_map = folium.Map(location=map_center, zoom_start=12)
+
+    nodes_dict = {}
+    for _, row in tqdm(nodes_df.iterrows()):
+        node_id = row["id"]
+        lat, lon = row["lat"], row["lon"]
+        nodes_dict[node_id] = (lat, lon)
+
+        folium.CircleMarker(
+            location=[lat, lon],
+            radius=4,
+            popup=f"Node ID: {node_id}",
+            color='blue',
+            fill=True,
+            fill_color='skyblue'
+        ).add_to(folium_map)
+
+        # folium.Marker(
+        #     location=[lat, lon],
+        #     popup=f"Node ID: {node_id}",
+        #     icon=folium.Icon(color="blue", icon="info-sign")
+        # ).add_to(folium_map)
+
+    for _, row in tqdm(links_df.iterrows()):
+        id1, id2 = row["id1"], row["id2"]
+
+        if id1 in nodes_dict and id2 in nodes_dict:
+            lat_lon1 = nodes_dict[id1]
+            lat_lon2 = nodes_dict[id2]
+
+            folium.PolyLine(
+                locations=[lat_lon1, lat_lon2],
+                color="red",
+                weight=2
+            ).add_to(folium_map)
+
+    folium_map.save(output_html)
+    print(f"saved to {output_html}")
+
+
 if __name__ == "__main__":
-    nodes = [
-        {'id': 1, 'latitude': 37.7749, 'longitude': -122.4194},
-        {'id': 2, 'latitude': 37.7750, 'longitude': -122.4180},
-        {'id': 3, 'latitude': 37.7740, 'longitude': -122.4170},
-        {'id': 4, 'latitude': 37.7730, 'longitude': -122.4185},
-        {'id': 5, 'latitude': 37.7735, 'longitude': -122.4200}
-    ]
+    visualize_touchdown("../touchdown/graph", 
+                        "touchdown_map.html")
+    # nodes = [
+    #     {'id': 1, 'latitude': 37.7749, 'longitude': -122.4194},
+    #     {'id': 2, 'latitude': 37.7750, 'longitude': -122.4180},
+    #     {'id': 3, 'latitude': 37.7740, 'longitude': -122.4170},
+    #     {'id': 4, 'latitude': 37.7730, 'longitude': -122.4185},
+    #     {'id': 5, 'latitude': 37.7735, 'longitude': -122.4200}
+    # ]
 
-    edges = [
-        {'source': 1, 'target': 2},
-        {'source': 2, 'target': 3},
-        {'source': 3, 'target': 4},
-        {'source': 4, 'target': 5},
-        {'source': 5, 'target': 1},
-        {'source': 2, 'target': 5}
-    ]
+    # edges = [
+    #     {'source': 1, 'target': 2},
+    #     {'source': 2, 'target': 3},
+    #     {'source': 3, 'target': 4},
+    #     {'source': 4, 'target': 5},
+    #     {'source': 5, 'target': 1},
+    #     {'source': 2, 'target': 5}
+    # ]
 
-    map_visualization = visualize_with_folium(nodes, edges)
-    map_visualization.save('map.html')
+    # map_visualization = visualize_with_folium(nodes, edges)
+    # map_visualization.save('map.html')

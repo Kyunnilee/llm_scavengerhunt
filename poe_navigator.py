@@ -41,7 +41,6 @@ class Navigator(BaseNavigator):
         elif control_mode == "human":
             self.action_mode = "human"
     
-
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
     
@@ -203,8 +202,8 @@ class Navigator(BaseNavigator):
                 if err_message != '':  # if has err, pass err message as help message
                     self.help_message = err_message
                                     
-            # if show_info: 
-            #     print(self.show_state_info(self.graph_state))
+            if show_info: 
+                print(self.show_state_info(self.graph_state))
     
 class Oracle: 
     def __init__(self, oracle_config: dict): 
