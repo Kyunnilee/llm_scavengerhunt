@@ -9,6 +9,7 @@ import config.map_config as map_config
 import requests
 import time
 import re
+from util import AgentVisualization
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 
@@ -40,6 +41,9 @@ class Navigator(BaseNavigator):
             self.action_mode = "openai"
         elif control_mode == "human":
             self.action_mode = "human"
+            
+        if show_info:
+            self.visualization = AgentVisualization(self.graph, self.image_root)
     
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
@@ -175,13 +179,21 @@ class Navigator(BaseNavigator):
         help_message = self.oracle.get_answer(question)
         return help_message
 
-    def forward(self, start_graph_state, show_info): 
+    def forward(self, start_graph_state): 
         self.graph_state = start_graph_state
         self.graph_state = self.fix_heading(self.graph_state)
         print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")
         self.help_message = None
+        self.visualization.init_current_node(self.graph_state[0])
 
         while True: 
+            if self.show_info: 
+                current_nodeid = self.graph_state[0]
+                heading = self.graph_state[1]
+                candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
+                candidate_nodeid = [node.panoid for node in candidate_nodes]
+                
+                self.visualization.update(current_nodeid, candidate_nodeid)
             # get action/move
             if self.help_message: # is asking for help
                 message = self.get_navigation_instructions(self.help_message, phase="help")
@@ -202,7 +214,7 @@ class Navigator(BaseNavigator):
                 if err_message != '':  # if has err, pass err message as help message
                     self.help_message = err_message
                                     
-            if show_info: 
+            if self.show_info: 
                 print(self.show_state_info(self.graph_state))
     
 class Oracle: 
@@ -233,23 +245,13 @@ def show_graph_info(graph):
             
 
 if __name__ == "__main__":   
-    # navi_config = r"config\human_test_navi.json"
-    navi_config = r"config\openai_test_navi.json"
+    navi_config = r"config\human_test_navi.json"
+    # navi_config = r"config\openai_test_navi.json"
     # navi_config = r"config\poe_test_navi.json"
     oracle_config = r"config\human_test_oracle.json"
     
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, show_info=True)
     # show_graph_info(navigator.graph)
     navigator.forward(
-        start_graph_state=('JEDrZGjSldMduPGNesgnuA', 0), 
-        show_info=True
+        start_graph_state=('4018889690', 0), 
     )
-    '''
-    TODO 
-    - add openai mode
-    - fix action space algo [ok]
-    - fix map loader/itself
-    - experiment, prompt.......
-    - move prompt stuff to config json file
-    '''
-    

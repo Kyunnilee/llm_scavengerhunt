@@ -8,6 +8,8 @@ import pandas as pd
 import os
 from typing import *
 from tqdm import tqdm
+import requests
+import math
 
 
 def build_graph_networkx(nodes: dict, edges: dict):
@@ -295,6 +297,134 @@ def visualize_touchdown(folder_path, output_html="network_map.html"):
 
     folium_map.save(output_html)
     print(f"saved to {output_html}")
+        
+# class AgentVisualization0():
+#     def __init__(self, graph, vis_root):
+#         self.vis_root = vis_root
+#         self.nx_graph = nx.Graph()
+#         self.nodes = {} # panoid: (lat, lon)
+#         self.current_node = None
+#         self.visited_nodes = set()
+#         self.candidate_nodes = None
+        
+#         # get min and max lat, lon
+#         min_lat, min_lon, max_lat, max_lon = 90, 180, -90, -180
+#         for nodeid, node in graph.nodes.items():
+#             min_lat = min(min_lat, node.coordinate[0])
+#             min_lon = min(min_lon, node.coordinate[1])
+#             max_lat = max(max_lat, node.coordinate[0])
+#             max_lon = max(max_lon, node.coordinate[1])
+    
+#         # add nodes and edges
+#         for nodeid, node in graph.nodes.items():
+#             y_pixel, x_pixel = node.coordinate  
+#             self.nodes[node.panoid] = (x_pixel, y_pixel)
+#         self.nx_graph.add_nodes_from(self.nodes.keys())
+        
+#         for nodeid, node in graph.nodes.items():
+#             for heading, end_node in node.neighbors.items():
+#                 self.nx_graph.add_edge(node.panoid, end_node.panoid)
+        
+#         # set up matplotlib
+#         plt.ion()
+#         fig, self.ax = plt.subplots(figsize=(10, 10))
+#         self.ax.set_xlim(min_lon, max_lon)
+#         self.ax.set_ylim(min_lat, max_lat)
+    
+#     def update_plot(self, new_node, candidate_nodes=None):
+#         if self.current_node:
+#             self.visited_nodes.add(self.current_node)
+#         self.current_node = new_node
+#         self.candidate_nodes = candidate_nodes
+        
+#         self.ax.clear()
+#         colors = []
+#         for node in self.nx_graph.nodes:
+#             if self.current_node and node == self.current_node:
+#                 colors.append('red')
+#             elif self.candidate_nodes and node == self.candidate_nodes:
+#                 colors.append('green')
+#             elif node in self.visited_nodes:
+#                 colors.append('gray')
+#             else:
+#                 colors.append('blue')
+#         nx.draw_networkx_nodes(self.nx_graph, pos=self.nodes, ax=self.ax, node_color=colors, node_size=1)
+#         nx.draw_networkx_edges(self.nx_graph, pos=self.nodes, ax=self.ax, width=1.0, alpha=0.7)
+#         # nx.draw_networkx_labels(self.nx_graph, pos=self.nodes, ax=self.ax)
+#         plt.draw()
+#         plt.pause(0.1)
+        
+class AgentVisualization():
+    def __init__(self,graph, vis_root, zoom=19):
+        self.vis_root = vis_root
+        self.nodes = {} # panoid: (lat, lon)
+        self.current_node = None
+        self.visited_nodes = []
+        self.candidate_nodes = []
+        self.nodes = {node.panoid: node.coordinate for node in graph.nodes.values()}
+        
+        # para for api
+        self.zoom = zoom
+        self.limit_distance = 0.001
+        
+        # set up matplotlib
+        plt.ion()
+        fig, self.ax = plt.subplots(figsize=(10, 10))
+        
+        self.step = 0
+
+    def get_google_map_image(self):
+        base_url = "https://maps.googleapis.com/maps/api/staticmap"
+        
+        current_node_pos = self.nodes[self.current_node]
+        current_marker = f"&markers=size:mid|color:red|{current_node_pos[0]}, {current_node_pos[1]}"
+        
+        candidate_markers = f"&markers=size:mid|color:green"
+        for node in self.candidate_nodes:
+            node_pos = self.nodes[node]
+            candidate_markers += f"|{node_pos[0]}, {node_pos[1]}"
+        candidate_markers = candidate_markers[:-1]
+        
+        other_markers = f"&markers=size:tiny|color:blue"
+        for node_id, node_pos in self.nodes.items():
+            distance = math.sqrt((node_pos[0] - current_node_pos[0])**2 + (node_pos[1] - current_node_pos[1])**2)
+            if distance > self.limit_distance: continue
+            
+            if node_id != self.current_node and node_id not in self.candidate_nodes:
+                other_markers += f"|{node_pos[0]}, {node_pos[1]}"
+        
+        visited_path = f"&path=color:0x0000ff|weight:5"
+        for node in self.visited_nodes:
+            node_pos = self.nodes[node]
+            visited_path += f"|{node_pos[0]}, {node_pos[1]}"
+            
+        full_url = f"{base_url}?center={current_node_pos[0]}, {current_node_pos[1]}&zoom={self.zoom}&size=640x640&maptype=roadmap{current_marker}{candidate_markers}{other_markers}{visited_path}&key={os.environ.get('GOOGLE_API_KEY')}"
+
+        response = requests.get(full_url)
+        
+        filename = os.path.join(self.vis_root, f"step_{self.step}.png")
+        if response.status_code == 200:
+            with open(filename, 'wb') as file:
+                for chunk in response.iter_content(1024):
+                    file.write(chunk)
+            print(f"Map with markers saved as {filename}")
+            return filename
+        else:
+            return f"Error: Unable to retrieve map (Status code: {response.status_code})"
+    
+    def update(self, new_node, candidate_nodes):
+        self.visited_nodes.append(self.current_node)
+        self.current_node = new_node
+        self.candidate_nodes = candidate_nodes
+        self.step += 1
+        self.ax.clear()
+        img = plt.imread(self.get_google_map_image())
+        self.ax.imshow(img)
+        plt.draw()
+        plt.pause(0.1)
+        
+    def init_current_node(self, node):
+        self.current_node = node
 
 
 if __name__ == "__main__":
