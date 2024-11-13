@@ -1,0 +1,4 @@
+ {
+    "system_prompt": "You are a helpful assistant replying to image queries, observing key details within the picture with the aim to identify exactly where you are", 
+    "model": "gpt-4o-mini" 
+}
