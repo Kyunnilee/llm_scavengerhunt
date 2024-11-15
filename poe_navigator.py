@@ -4,6 +4,7 @@ import json
 from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
 from poe_agent import PoeAgent
+from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2
 import os 
 import config.map_config as map_config
 import requests
@@ -12,6 +13,8 @@ import re
 from util import AgentVisualization
 
 api_key = os.environ.get('GOOGLE_API_KEY')
+base_dir = os.getcwd() # Get cwd current working directory
+
 
 class Navigator(BaseNavigator):
     
@@ -42,8 +45,8 @@ class Navigator(BaseNavigator):
         elif control_mode == "human":
             self.action_mode = "human"
             
-        if show_info:
-            self.visualization = AgentVisualization(self.graph, self.image_root)
+        # if show_info:
+        #     self.visualization = AgentVisualization(self.graph, self.image_root)
     
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
@@ -64,7 +67,7 @@ class Navigator(BaseNavigator):
             if action in action_message:
                 return action
         
-    def get_navigation_instructions(self, help_message=None, phase="new_state"): #phase = new_state, help
+    def get_navigation_instructions(self, help_message=None, phase="new_state", supp_instructions=""): #phase = new_state, help
         if phase == "new_state":
             panoid, heading = self.graph_state 
             lat, lon = self.graph.get_node_coordinates(panoid)
@@ -74,7 +77,7 @@ class Navigator(BaseNavigator):
             message3 = "You can take following action: " + self.show_state_info(self.graph_state)
             message4 = "Action: lost, ask for help.\nAction: stop, end the navigation."
             
-            message += '\n' + message3 + '\n' + message4
+            message += '\n' + message3 + '\n' + message4 + '\n' + supp_instructions
         elif phase == "help":
             message = help_message
         return message
@@ -184,8 +187,9 @@ class Navigator(BaseNavigator):
         self.graph_state = self.fix_heading(self.graph_state)
         print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")
         self.help_message = None
-        self.visualization.init_current_node(self.graph_state[0])
+        #self.visualization.init_current_node(self.graph_state[0])
 
+        i = 0
         while True: 
             if self.show_info: 
                 current_nodeid = self.graph_state[0]
@@ -193,7 +197,7 @@ class Navigator(BaseNavigator):
                 candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
                 candidate_nodeid = [node.panoid for node in candidate_nodes]
                 
-                self.visualization.update(current_nodeid, candidate_nodeid)
+                #self.visualization.update(current_nodeid, candidate_nodeid)
             # get action/move
             if self.help_message: # is asking for help
                 message = self.get_navigation_instructions(self.help_message, phase="help")
@@ -201,7 +205,8 @@ class Navigator(BaseNavigator):
                 action = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
-                message = self.get_navigation_instructions()
+                message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_2) else NAVIGATION_LVL_2[i])
+                i += 1
                 action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
                 
             if action == 'stop': 
@@ -245,10 +250,10 @@ def show_graph_info(graph):
             
 
 if __name__ == "__main__":   
-    navi_config = r"config\human_test_navi.json"
-    # navi_config = r"config\openai_test_navi.json"
+    #navi_config = r"config\human_test_navi.json"
+    navi_config = os.path.join("config", "openai_test_navi_2.json")
     # navi_config = r"config\poe_test_navi.json"
-    oracle_config = r"config\human_test_oracle.json"
+    oracle_config = os.path.join("config", "human_test_oracle.json")
     
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, show_info=True)
     # show_graph_info(navigator.graph)
