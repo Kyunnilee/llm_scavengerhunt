@@ -1,4 +1,5 @@
- {
+ {  
+    "image_system": "You will be provided with an image in the prompt. Please analyze the provided image(s) and: 1. Describe the key elements visible, looking into things like signboards or any indications that can help to identify where you are 2. Note any important details or patterns 3. Provide relevant context if applicable. Your reply should clearly associate the heading number",
     "system_prompt": "You are a helpful assistant replying to image queries, observing key details within the picture with the aim to identify exactly where you are", 
     "model": "gpt-4o-mini" 
 }

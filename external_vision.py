@@ -1,27 +1,18 @@
 from openai import OpenAI
 import os 
 
-api_key = os.environ.get('OPENAI_API_KEY')
+api_key=os.environ.get("OPENAI_API_KEY")
 
 class VisionAnswering: 
     def __init__(self, config): 
         self.client = OpenAI(api_key=api_key)
         self.base_system_prompt = config['system_prompt']
+        self.image_system = config['image_system']
         self.model = config['model']
     
-    def get_image_system_prompt(self):
-        return """You will be provided with an image in the prompt. 
-        Please analyze the provided image(s) and:
-        1. Describe the key elements visible, looking into things like signboards or any indications that can help to identify where you are 
-        2. Note any important details or patterns
-        3. Provide relevant context if applicable
-        Your reply should clearly associate the heading number 
-        """
-
     def get_image_summary(self, image_path, is_debug): 
-        image_system_prompt = self.get_image_system_prompt()      
         content =[
-            {"type": "text", "text": image_system_prompt}, 
+            {"type": "text", "text": self.image_system}, 
             {
                 "type": "image_url",
                 "image_url": {

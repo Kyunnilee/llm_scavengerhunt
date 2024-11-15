@@ -6,8 +6,8 @@ from poe_agent import PoeAgent
 import os 
 import config.map_config as map_config
 import re
-#from util import AgentVisualization
-from vision_model import VisionAnswering
+from util import AgentVisualization
+from external_vision import VisionAnswering
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 
@@ -220,15 +220,15 @@ def show_graph_info(graph):
             
 
 if __name__ == "__main__":   
-    navi_config = r"config\human_test_navi.json"
+    # navi_config = r"config\human_test_navi.json"
     # navi_config = r"config\openai_test_navi.json"
-    # navi_config = r"config\poe_test_navi.json"
+    navi_config = r"config\poe_test_navi.json"
     oracle_config = r"config\human_test_oracle.json"
     vision_config = r"config\human_test_vision.json"
     
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, show_info=False)
     # show_graph_info(navigator.graph)
-    image_features = navigator.get_image_feature(graph_state=('4018889690', 0), mode="poe_send_message")
+    image_features = navigator.get_image_feature(graph_state=('65287201', 0), mode="poe_send_message")
     print(image_features)
     test = navigator.get_navigation_action(image_urls=image_features, message="Where are we")
     print(test)
