@@ -1,6 +1,7 @@
 import sys
 import os
 import config.map_config as config
+import math
 
 
 class Node:
@@ -21,6 +22,10 @@ class Graph:
     def add_edge(self, start_panoid, end_panoid, heading):
         start_node = self.nodes[start_panoid]
         end_node = self.nodes[end_panoid]
+        heading = math.atan2(
+            end_node.coordinate[1] - start_node.coordinate[1], 
+            end_node.coordinate[0] - start_node.coordinate[0]
+        ) / math.pi * 180
         # if not start_node.neighbors[heading]:
         start_node.neighbors[heading] = end_node
         # else:
@@ -28,6 +33,15 @@ class Graph:
         
     def get_node_coordinates(self, node_id):
         return self.nodes[node_id].coordinate
+    
+    def get_candidate_nodes(self, node_id, heading): # only return the node that has the same heading
+        # candidate_nodes = []
+        for heading2neighbor, neighbor in self.nodes[node_id].neighbors.items():
+            # candidate_nodes.append(neighbor)
+            if heading == heading2neighbor:
+                return [neighbor]
+        # return candidate_nodes
+        return []
 
 
 class GraphLoader:
