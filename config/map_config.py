@@ -5,5 +5,5 @@ paths = {
 }
 
 data_paths = {
-    'image_root': r'output\streetview_image',
+    'image_root': r'output/streetview_image',
 }

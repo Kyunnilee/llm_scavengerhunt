@@ -11,7 +11,7 @@
 
 NAVIGATION_LVL_1 = ["Among these options, choose the action: right", "Among these options, choose the action: forward", "Among these options, choose the action: forward", "Among these options, choose the action: forward", "Among these options, choose the action: turn_around", "Among these options, choose the action: stop"]
 NAVIGATION_LVL_2 = ["Choose the option that will make your heading around 149", "Choose the option that will get you to the graph state: ('4018889698', 140.44581646108813)", "Choose the option that will get you to the graph state: ('4018889725', 128.2695160626994)", "Choose the option that will get you to the graph state: ('4018889735', 112.96833410760605)", "Choose the option that will make your heading = -51.730483937300605", "Choose the option stop"]
-
+NAVIGATION_LVL_6 = []
 # from base_navigator import BaseNavigator
 # from poe_api_wrapper import PoeApi
 # import json

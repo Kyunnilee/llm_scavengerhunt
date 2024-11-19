@@ -4,7 +4,7 @@ import json
 from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
 from poe_agent import PoeAgent
-from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2
+from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
 import os 
 import config.map_config as map_config
 import requests
@@ -13,6 +13,8 @@ import re
 from util import AgentVisualization
 
 api_key = os.environ.get('GOOGLE_API_KEY')
+base_dir = os.getcwd() # Get cwd current working directory
+
 
 class Navigator(BaseNavigator):
     
@@ -203,7 +205,7 @@ class Navigator(BaseNavigator):
                 action = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
-                message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_2) else NAVIGATION_LVL_2[i])
+                message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[i])
                 i += 1
                 action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
                 
@@ -249,9 +251,9 @@ def show_graph_info(graph):
 
 if __name__ == "__main__":   
     #navi_config = r"config\human_test_navi.json"
-    navi_config = r"config\openai_test_navi_2.json"
+    navi_config = os.path.join("config", "openai_test_navi_3.json")
     # navi_config = r"config\poe_test_navi.json"
-    oracle_config = r"config\human_test_oracle.json"
+    oracle_config = os.path.join("config", "human_test_oracle.json")
     
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, show_info=True)
     # show_graph_info(navigator.graph)
