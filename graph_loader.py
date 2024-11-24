@@ -3,6 +3,7 @@ import os
 import config.map_config as config
 import math
 
+from collections import deque
 
 class Node:
     def __init__(self, panoid, pano_yaw_angle, lat, lng):
@@ -10,6 +11,16 @@ class Node:
         self.pano_yaw_angle = pano_yaw_angle
         self.neighbors = {}
         self.coordinate = (lat, lng)
+    
+    def __str__(self):
+        neighbor_panoids = [node.panoid for node in self.neighbors.values()]
+        return f"\"Node Object with panoid={self.panoid}, " \
+                f"(lat, lng)=({self.coordinate[0]}, {self.coordinate[1]}), " \
+                f"neighbours=({neighbor_panoids}), " \
+                f"pano_yaw_angle={self.pano_yaw_angle}\"\n"
+    
+    def __repr__(self):
+        return self.__str__()
 
 
 class Graph:
@@ -43,6 +54,30 @@ class Graph:
         # return candidate_nodes
         return []
 
+    def get_path(self, node_from, node_to):
+        '''
+        Use BFS to find a path from node_from to node_to.
+        Returns a list of `panoid`s, indicating the path.
+        '''
+        if node_from not in self.nodes or node_to not in self.nodes:
+            raise ValueError("Both start and end nodes must exist in the graph.")
+        
+        queue = deque([(self.nodes[node_from], [])])  # (current_node, path_so_far)
+        visited = set()
+        
+        while queue:
+            current_node, path = queue.popleft()
+            
+            if current_node.panoid == node_to:
+                return path + [current_node.panoid]
+            
+            visited.add(current_node.panoid)
+            
+            for neighbor in current_node.neighbors.values():
+                if neighbor.panoid not in visited:
+                    queue.append((neighbor, path + [current_node.panoid]))
+        
+        return None
 
 class GraphLoader:
     def __init__(self, cfg: dict=None):
@@ -81,3 +116,7 @@ class GraphLoader:
         print('========================')
         return self.graph
 
+if __name__ == "__main__":
+    g = GraphLoader().construct_graph()
+    path = g.get_path("12144574384", "5429620659")
+    print(path) 

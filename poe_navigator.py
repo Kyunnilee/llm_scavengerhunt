@@ -43,7 +43,9 @@ class Navigator(BaseNavigator):
             self.action_mode = "openai"
         elif control_mode == "human":
             self.action_mode = "human"
-            
+        
+        self.qa_client = QA_Agent()
+
         # if show_info:
         #     self.visualization = AgentVisualization(self.graph, self.image_root)
     
