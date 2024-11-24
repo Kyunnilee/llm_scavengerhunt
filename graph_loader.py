@@ -1,9 +1,26 @@
 import sys
 import os
-import config.map_config as config
 import math
+import heapq
+import config.map_config as config
 
 from collections import deque
+
+def haversine(coord1, coord2):
+    """
+    Calculate the Haversine distance between two coordinates (lat, lng).
+    coord1, coord2: Tuples (latitude, longitude) in degrees.
+    Returns: Distance in meters.
+    """
+    R = 6371000  # Earth radius in meters
+    lat1, lon1 = map(math.radians, coord1)
+    lat2, lon2 = map(math.radians, coord2)
+    
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 class Node:
     def __init__(self, panoid, pano_yaw_angle, lat, lng):
@@ -55,27 +72,34 @@ class Graph:
         return []
 
     def get_path(self, node_from, node_to):
-        '''
-        Use BFS to find a path from node_from to node_to.
+        """
+        Use UCS to find the shortest path from node_from to node_to.
+        Cost is defined as the distance between nodes.
         Returns a list of `panoid`s, indicating the path.
-        '''
+        """
         if node_from not in self.nodes or node_to not in self.nodes:
             raise ValueError("Both start and end nodes must exist in the graph.")
         
-        queue = deque([(self.nodes[node_from], [])])  # (current_node, path_so_far)
+        # Priority queue for UCS
+        priority_queue = []  # (cumulative_cost, current_node, path_so_far)
+        heapq.heappush(priority_queue, (0, self.nodes[node_from], [])) 
+        
         visited = set()
         
-        while queue:
-            current_node, path = queue.popleft()
+        while priority_queue:
+            cumulative_cost, current_node, path = heapq.heappop(priority_queue)
             
             if current_node.panoid == node_to:
                 return path + [current_node.panoid]
             
+            if current_node.panoid in visited:
+                continue
             visited.add(current_node.panoid)
             
-            for neighbor in current_node.neighbors.values():
+            for neighbor_heading, neighbor in current_node.neighbors.items():
                 if neighbor.panoid not in visited:
-                    queue.append((neighbor, path + [current_node.panoid]))
+                    step_cost = haversine(current_node.coordinate, neighbor.coordinate)
+                    heapq.heappush(priority_queue, (cumulative_cost + step_cost, neighbor, path + [current_node.panoid]))
         
         return None
 
@@ -118,5 +142,5 @@ class GraphLoader:
 
 if __name__ == "__main__":
     g = GraphLoader().construct_graph()
-    path = g.get_path("12144574384", "5429620659")
+    path = g.get_path("1243846572", "6910182916")
     print(path) 
