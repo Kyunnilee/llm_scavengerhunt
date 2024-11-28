@@ -45,8 +45,8 @@ class Navigator(BaseNavigator):
         elif control_mode == "human":
             self.action_mode = "human"
             
-        # if show_info:
-        #     self.visualization = AgentVisualization(self.graph, self.image_root)
+        if show_info:
+            self.visualization = AgentVisualization(self.graph, self.image_root)
     
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
@@ -187,7 +187,7 @@ class Navigator(BaseNavigator):
         self.graph_state = self.fix_heading(self.graph_state)
         print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")
         self.help_message = None
-        #self.visualization.init_current_node(self.graph_state[0])
+        self.visualization.init_current_node(self.graph_state[0])
 
         i = 0
         while True: 
@@ -197,7 +197,7 @@ class Navigator(BaseNavigator):
                 candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
                 candidate_nodeid = [node.panoid for node in candidate_nodes]
                 
-                #self.visualization.update(current_nodeid, candidate_nodeid)
+                self.visualization.update(current_nodeid, candidate_nodeid)
             # get action/move
             if self.help_message: # is asking for help
                 message = self.get_navigation_instructions(self.help_message, phase="help")
