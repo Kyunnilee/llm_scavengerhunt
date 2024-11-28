@@ -1,5 +1,4 @@
 from base_navigator import BaseNavigator
-from poe_api_wrapper import PoeApi
 import json
 from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
@@ -7,10 +6,9 @@ from poe_agent import PoeAgent
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
 import os 
 import config.map_config as map_config
-import requests
-import time
 import re
 from util import AgentVisualization
+from external_vision import VisionAnswering
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 base_dir = os.getcwd() # Get cwd current working directory
@@ -18,7 +16,7 @@ base_dir = os.getcwd() # Get cwd current working directory
 
 class Navigator(BaseNavigator):
     
-    def __init__(self, config, oracle_config, show_info=False): 
+    def __init__(self, config, oracle_config, answering_config, show_info=False): 
         super().__init__()
         
         self.image_root = map_config.data_paths['image_root']
@@ -32,10 +30,14 @@ class Navigator(BaseNavigator):
         with open(oracle_config, 'r') as f:
             oracle_config_data = json.load(f)
             self.oracle = Oracle(oracle_config_data)
-                
+        
+        with open(answering_config, 'r') as f: 
+            answering_config_data = json.load(f)
+            self.answering = VisionAnswering(answering_config_data)
+
         control_mode = self.config['mode']
         print(f"Control mode: {control_mode}")
-    
+        self.offsets = [-90, -45, 0, 45, 90]
         if control_mode == "poe":
             self.client = PoeAgent(self.config) 
             self.action_mode = "poe_send_message"
@@ -44,9 +46,11 @@ class Navigator(BaseNavigator):
             self.action_mode = "openai"
         elif control_mode == "human":
             self.action_mode = "human"
-            
-        if show_info:
-            self.visualization = AgentVisualization(self.graph, self.image_root)
+        
+        self.qa_client = QA_Agent()
+
+        # if show_info:
+        #     self.visualization = AgentVisualization(self.graph, self.image_root)
     
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
@@ -82,17 +86,25 @@ class Navigator(BaseNavigator):
             message = help_message
         return message
     
-    def get_navigation_action(self, image_features: str, message: str, mode="poe_send_message"):
+    def get_navigation_action(self, image_urls, message: str, mode="poe_send_message"):
         if self.show_info:
             print("*"*50, "[get_navigation_action] System input:")
             print("Getting navigation action")
             print(f"Message: {message}")
-            print(f"Image features: {image_features}")
+            print(f"Image features: {image_urls}")
             print("*"*50)
             
         if mode == "poe_send_message":
-            chunk = self.send_message(message=message, files=image_features)
+            #False here is for the is_debug flag // Can remove 
+            map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+            new_message = ""
+            for k, v in map_of_summaries.items(): 
+                new_message += f"At your {k} heading, we see {v}."
+            message += new_message
+            print(message)
+            chunk = self.send_message(message=message)
             action_message = chunk["text"]
+            print(action_message)
             action = self.parse_action(action_message)
             if self.show_info:
                 print("="*50, "[get_navigation_action] Agent output:")
@@ -113,24 +125,8 @@ class Navigator(BaseNavigator):
     
     def get_image_feature(self, graph_state, mode="human"):
         '''
-        return_type: "url" or "file_path"
-        '''
-        def download_image(url, file_path):
-            response = requests.get(url,stream=True)
-            if response.status_code == 200:
-                with open(file_path, 'wb') as file:
-                    for chunk in response.iter_content(1024):
-                        file.write(chunk)
-                return file_path
-            
-            
-        if mode == "human":
-            return_type = "url"
-        elif mode == "poe_send_message":
-            return_type = "file_path"
-        elif mode == "openai":
-            return_type = "url"
-                
+        return_type: "List[url]"
+        '''     
         panoid, heading = graph_state
         lat, lon = self.graph.nodes[panoid].coordinate
         if self.show_info:
@@ -139,32 +135,13 @@ class Navigator(BaseNavigator):
             print("*"*50)
 
         image_urls = []
-        offsets = [-90, -45, 0, 45, 90]
-        for offset in offsets:
+        for offset in self.offsets:
             heading_image = (heading + offset) % 360
             image_url = get_street_view_image_url(lat, lon, api_key, heading_image)
             image_urls.append(image_url)
-            
-        if return_type == "url":
-            return image_urls
-        elif return_type == "file_path":
-            image_paths = []
-            for i, url in enumerate(image_urls):
-                heading_image = (heading + offsets[i]) % 360
-                image_path = os.path.join(self.image_root, f"{panoid}_{heading_image}.jpg")
-                download_image(url, image_path)
-                image_paths.append(image_path)            
-            return image_paths
-            # return [image_paths[1], image_paths[2], image_paths[3]]  # TODO poe: Message or attachment too large. Only sending the front image.
-        '''
-        doc mentioned that this was necessary to align the heading of the panorama with the actual heading of the image but if we using url then ?? 
-        # shift_angle = 157.5 + self.graph.nodes[panoid].pano_yaw_angle - heading 
-        # width = image_feature.shape[1]
-        # shift = int(width * shift_angle / 360)
-        # image_feature = np.roll(image_feature, shift, axis=1)
-        # return image_feature
-        '''
 
+        return image_urls 
+            
     def ask_for_help(self, mode="human"): 
         '''
         return answer from the oracle
@@ -250,13 +227,16 @@ def show_graph_info(graph):
             
 
 if __name__ == "__main__":   
+
     #navi_config = r"config\human_test_navi.json"
     navi_config = os.path.join("config", "openai_test_navi_3.json")
     # navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
-    
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, show_info=True)
+    vision_config = r"config\human_test_vision.json"
+
+    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, show_info=False)
     # show_graph_info(navigator.graph)
-    navigator.forward(
-        start_graph_state=('4018889690', 0), 
-    )
+    image_features = navigator.get_image_feature(graph_state=('65287201', 0), mode="poe_send_message")
+    print(image_features)
+    test = navigator.get_navigation_action(image_urls=image_features, message="Where are we")
+    print(test)

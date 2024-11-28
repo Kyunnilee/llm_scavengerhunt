@@ -356,7 +356,9 @@ def visualize_touchdown(folder_path, output_html="network_map.html"):
         
 class AgentVisualization():
     def __init__(self,graph, vis_root, zoom=19):
-        self.vis_root = vis_root
+        self.vis_root = os.path.join(vis_root, "agent_vis")
+        os.makedirs(self.vis_root, exist_ok=True)
+        
         self.nodes = {} # panoid: (lat, lon)
         self.current_node = None
         self.visited_nodes = []
@@ -397,6 +399,7 @@ class AgentVisualization():
         for node in self.visited_nodes:
             node_pos = self.nodes[node]
             visited_path += f"|{node_pos[0]}, {node_pos[1]}"
+        visited_path += f"|{current_node_pos[0]}, {current_node_pos[1]}"
             
         full_url = f"{base_url}?center={current_node_pos[0]}, {current_node_pos[1]}&zoom={self.zoom}&size=640x640&maptype=roadmap{current_marker}{candidate_markers}{other_markers}{visited_path}&key={os.environ.get('GOOGLE_API_KEY')}"
 
