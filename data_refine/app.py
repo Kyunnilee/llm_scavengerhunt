@@ -6,7 +6,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-config = {'node': r'touchdown\graph\our_graph\nodes.txt','link': r'touchdown\graph\our_graph\links.txt'}
+config = {'node': os.path.join('touchdown', 'graph', 'our_graph', 'nodes.txt'),'link': os.path.join('touchdown', 'graph', 'our_graph', 'links.txt')}
 gradio_app = GradioApp(config)
 
 node_selection = gr.Dropdown(label="Choose Nodes", choices=gradio_app.get_node(), multiselect=True, filterable=True)
