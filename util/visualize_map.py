@@ -355,7 +355,7 @@ def visualize_touchdown(folder_path, output_html="network_map.html"):
 #         plt.pause(0.1)
         
 class AgentVisualization():
-    def __init__(self,graph, vis_root, zoom=19):
+    def __init__(self,graph, vis_root, google_api=os.environ.get('GOOGLE_API_KEY'), zoom=19, silent=False):
         self.vis_root = os.path.join(vis_root, "agent_vis")
         os.makedirs(self.vis_root, exist_ok=True)
         
@@ -366,12 +366,15 @@ class AgentVisualization():
         self.nodes = {node.panoid: node.coordinate for node in graph.nodes.values()}
         
         # para for api
+        self.google_api = google_api
         self.zoom = zoom
         self.limit_distance = 0.001
         
         # set up matplotlib
-        plt.ion()
-        fig, self.ax = plt.subplots(figsize=(10, 10))
+        self.silent = silent
+        if not self.silent:
+            plt.ion()
+            fig, self.ax = plt.subplots(figsize=(10, 10))
         
         self.step = 0
 
@@ -401,7 +404,7 @@ class AgentVisualization():
             visited_path += f"|{node_pos[0]}, {node_pos[1]}"
         visited_path += f"|{current_node_pos[0]}, {current_node_pos[1]}"
             
-        full_url = f"{base_url}?center={current_node_pos[0]}, {current_node_pos[1]}&zoom={self.zoom}&size=640x640&maptype=roadmap{current_marker}{candidate_markers}{other_markers}{visited_path}&key={os.environ.get('GOOGLE_API_KEY')}"
+        full_url = f"{base_url}?center={current_node_pos[0]}, {current_node_pos[1]}&zoom={self.zoom}&size=640x640&maptype=roadmap{current_marker}{candidate_markers}{other_markers}{visited_path}&key={self.google_api}"
 
         response = requests.get(full_url)
         
@@ -420,14 +423,44 @@ class AgentVisualization():
         self.current_node = new_node
         self.candidate_nodes = candidate_nodes
         self.step += 1
-        self.ax.clear()
-        img = plt.imread(self.get_google_map_image())
-        self.ax.imshow(img)
-        plt.draw()
-        plt.pause(0.1)
+        vis_image_path = self.get_google_map_image()
+        if not self.silent:
+            img = plt.imread(vis_image_path)
+            self.ax.clear()
+            self.ax.imshow(img)
+            plt.draw()
+            plt.pause(0.1)
+        return vis_image_path
         
     def init_current_node(self, node):
         self.current_node = node
+        
+    def get_all_trace(self, save_root=None):
+        base_url = "https://maps.googleapis.com/maps/api/staticmap"
+        current_node_pos = self.nodes[self.current_node]
+        current_marker = f"&markers=size:mid|color:red|{current_node_pos[0]}, {current_node_pos[1]}"
+        visited_path = f"&path=color:0x0000ff|weight:5"
+        for node in self.visited_nodes:
+            node_pos = self.nodes[node]
+            visited_path += f"|{node_pos[0]}, {node_pos[1]}"
+        visited_path += f"|{current_node_pos[0]}, {current_node_pos[1]}"
+        full_url = f"{base_url}?center={current_node_pos[0]}, {current_node_pos[1]}&zoom={self.zoom}&size=640x640&maptype=roadmap{current_marker}{visited_path}&key={os.environ.get('GOOGLE_API_KEY')}"
+        
+        response = requests.get(full_url)
+        
+        if save_root:
+            filename = os.path.join(save_root, f"all_trace.png")
+        else:
+            filename = os.path.join(self.vis_root, f"all_trace.png")
+            
+        if response.status_code == 200:
+            with open(filename, 'wb') as file:
+                for chunk in response.iter_content(1024):
+                    file.write(chunk)
+            print(f"Map with markers saved as {filename}")
+            return filename
+        else:
+            return f"Error: Unable to retrieve map (Status code: {response.status_code})"
 
 
 if __name__ == "__main__":
