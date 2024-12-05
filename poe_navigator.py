@@ -47,10 +47,10 @@ class Navigator(BaseNavigator):
         elif control_mode == "human":
             self.action_mode = "human"
         
-        self.qa_client = QA_Agent()
+        #self.qa_client = QA_Agent()
 
-        # if show_info:
-        #     self.visualization = AgentVisualization(self.graph, self.image_root)
+        if show_info:
+            self.visualization = AgentVisualization(self.graph, self.image_root)
     
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
@@ -70,9 +70,15 @@ class Navigator(BaseNavigator):
         for action in acton_space: # if not matched, try to directly match the action in the message
             if action in action_message:
                 return action
-        
-    def get_navigation_instructions(self, help_message=None, phase="new_state", supp_instructions=""): #phase = new_state, help
-        if phase == "new_state":
+    
+    # Note: I think the image handling should be done in get_navigation_instructions, ask team about it
+    def get_navigation_instructions(self, help_message=None, phase="new_state", supp_instructions="", image_urls=[]): #phase = new_state, help
+        map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+        image_summaries = ""
+        for k, v in map_of_summaries.items(): 
+            image_summaries += f"At your {k} heading, we see {v}."
+
+        if phase == "new_state": 
             panoid, heading = self.graph_state 
             lat, lon = self.graph.get_node_coordinates(panoid)
             message = f"You are currently at {lat}, {lon} facing {heading}."
@@ -80,27 +86,33 @@ class Navigator(BaseNavigator):
             # message2 = "You can go through the following directions, to the new nodes: " + self.get_state_edges(self.graph_state)
             message3 = "You can take following action: " + self.show_state_info(self.graph_state)
             message4 = "Action: lost, ask for help.\nAction: stop, end the navigation."
-            
-            message += '\n' + message3 + '\n' + message4 + '\n' + supp_instructions
+           
+            message += '\n' + message3 + '\n' + message4 + '\n' + supp_instructions + image_summaries
         elif phase == "help":
             message = help_message
         return message
     
     def get_navigation_action(self, image_urls, message: str, mode="poe_send_message"):
+        # map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+        # image_summaries = ""
+        # for k, v in map_of_summaries.items(): 
+        #     image_summaries += f"At your {k} heading, we see {v}."
+
         if self.show_info:
             print("*"*50, "[get_navigation_action] System input:")
             print("Getting navigation action")
             print(f"Message: {message}")
             print(f"Image features: {image_urls}")
+            #print(f"Image Interpretation: {image_summaries}")
             print("*"*50)
             
         if mode == "poe_send_message":
             #False here is for the is_debug flag // Can remove 
-            map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
-            new_message = ""
-            for k, v in map_of_summaries.items(): 
-                new_message += f"At your {k} heading, we see {v}."
-            message += new_message
+            # map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+            # new_message = ""
+            # for k, v in map_of_summaries.items(): 
+            #     new_message += f"At your {k} heading, we see {v}."
+            #message += image_summaries
             print(message)
             chunk = self.send_message(message=message)
             action_message = chunk["text"]
@@ -112,6 +124,11 @@ class Navigator(BaseNavigator):
                 print(f"Action: {action}")
                 print("="*50)
         elif mode == "openai":
+            # map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+            # new_message = ""
+            # for k, v in map_of_summaries.items(): 
+            #     new_message += f"At your {k} heading, we see {v}."
+            #message += image_summaries
             action_message = self.send_message(message)
             action = self.parse_action(action_message)
             if self.show_info:
@@ -164,9 +181,12 @@ class Navigator(BaseNavigator):
         self.graph_state = self.fix_heading(self.graph_state)
         print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")
         self.help_message = None
-        self.visualization.init_current_node(self.graph_state[0])
+        #self.visualization.init_current_node(self.graph_state[0])
 
         i = 0
+        agent_lost = []
+        agent_move = []
+        agent_response = []
         while True: 
             if self.show_info: 
                 current_nodeid = self.graph_state[0]
@@ -174,18 +194,21 @@ class Navigator(BaseNavigator):
                 candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
                 candidate_nodeid = [node.panoid for node in candidate_nodes]
                 
-                self.visualization.update(current_nodeid, candidate_nodeid)
+                #self.visualization.update(current_nodeid, candidate_nodeid)
             # get action/move
             if self.help_message: # is asking for help
                 message = self.get_navigation_instructions(self.help_message, phase="help")
                 self.help_message = None
                 action = self.get_navigation_action([], message, mode=self.action_mode)
+                agent_lost.append((message, action))
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
-                message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[i])
+                message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_2) else NAVIGATION_LVL_2[i])
                 i += 1
                 action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
-                
+                agent_move.append((message, action))
+            
+            agent_response.append(("Context: " + message, "Agent Action: " + action))
             if action == 'stop': 
                 print("Action stop is chosen")
                 break
@@ -234,9 +257,15 @@ if __name__ == "__main__":
     oracle_config = os.path.join("config", "human_test_oracle.json")
     vision_config = r"config\human_test_vision.json"
 
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, show_info=False)
+    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, show_info=True)
     # show_graph_info(navigator.graph)
-    image_features = navigator.get_image_feature(graph_state=('65287201', 0), mode="poe_send_message")
-    print(image_features)
-    test = navigator.get_navigation_action(image_urls=image_features, message="Where are we")
-    print(test)
+    # navigator.forward(
+    #     start_graph_state=('65287201', 0),
+    # )
+    navigator.forward(
+        start_graph_state=('4018889690', 0),
+    )
+    # image_features = navigator.get_image_feature(graph_state=('65287201', 0), mode="openai")
+    # print(image_features)
+    # test = navigator.get_navigation_action(image_urls=image_features, message="Where are we")
+    # print(test)
