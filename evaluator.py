@@ -11,25 +11,29 @@ class AgentEvaluator:
         self.model = config['model']
 
     
-    def evaluate_misc(self, total_response):
+    def evaluate_misc(self, total_response, shortest_step):
         '''
         Evaluate the number of questions asked (int), number of steps took to reach destination (int), and whether the agent finished (bool)
 
         total_response: List of pairs in the following format [("Context: " + message, "Agent Action: " + action)]/ One node, one action
         '''
-        # total_response = "Context message and action message string" 
-        num_questions, num_steps = None
-        finished = False
+        # total_response = list of "Context message and action message string" 
+        num_steps = 0 # num of Forwards
+        eval_num_questions, eval_num_steps = 0 # evaluated benchmark value of # questions and 3 steps taken
+        eval_finished = False # evaluated benchmark value whether the agent reached the goal or not
 
-        num_questions = len([pair for pair in total_response if "lost" in pair[1]])
-        num_steps = len(total_response) # length of the list of pairs
+        num_steps = len([pair for pair in total_response if "forward" in pair[1]])
+        eval_num_questions = len([pair for pair in total_response if "lost" in pair[1]]) / num_steps 
+
+        # length of the list of pairs - and scale it by the shortest path length
+        eval_num_steps = num_steps / shortest_step
 
         for pair in total_response: # mark finished true if agent action is "stop"
             if "stop" in pair[1]:
-                finished = True
+                eval_finished = True
                 break
 
-        return num_questions, num_steps, finished
+        return eval_num_questions, eval_num_steps, eval_finished
 
     # def evaluate_lost_response(self, response):
     #     pass
