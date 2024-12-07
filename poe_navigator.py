@@ -26,16 +26,6 @@ class Navigator(BaseNavigator):
                 map_config_data = json.load(f)
                 
         super().__init__(map_config_data)
-
-        if 'log_root' in map_config_data: # legacy
-            self.log_root = map_config_data['log_root']
-        else:
-            log_dir_name = f"{time.strftime('%Y%m%d-%H%M%S')}_logs"
-            self.log_root = os.path.join('output', 'logs', log_dir_name)
-        os.makedirs(self.log_root, exist_ok=True)    
-        
-        self.log_info = {} # used in gradio
-        self.show_info = show_info # show visualization and info in console
        
         print(f"[init]Loading config from {config}")
         with open(config, 'r') as f:
@@ -69,8 +59,19 @@ class Navigator(BaseNavigator):
         elif control_mode == "human":
             self.action_mode = "human"
             
+        if 'log_root' in map_config_data: # legacy
+            self.log_root = map_config_data['log_root']
+        else:
+            log_dir_name = f"{time.strftime('%Y%m%d-%H%M%S')}_logs"
+            self.log_root = os.path.join('output', 'logs', log_dir_name)
+        os.makedirs(self.log_root, exist_ok=True)    
+        
+        self.log_infos = []
+        self.show_info = show_info # show visualization and info in console
+            
         # self.qa_client = QA_Agent()
-        self.visualization = AgentVisualization(self.graph, self.log_root, silent=show_info)
+        vis_silent = False if show_info else True
+        self.visualization = AgentVisualization(self.graph, self.log_root, silent=vis_silent)
     
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
@@ -112,7 +113,7 @@ class Navigator(BaseNavigator):
                 image_feed = image_urls
             elif self.vision_mode == "vision_answering":
                 image_feed = []
-                map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, self.help_message, False)
+                map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
                 new_message = ""
                 for k, v in map_of_summaries.items(): 
                     new_message += f"At your {k} heading, we see {v}."
@@ -174,7 +175,11 @@ class Navigator(BaseNavigator):
         return answer from the oracle
         TODO -> read human input should be able to work / gpt4o model for  
         '''
+        # question from QA agent
         message = self.oracle.question
+        self.log_info["qa_messages"]['answer'].append(message)
+        
+        # get question from main agent
         if mode == "poe_send_message":
             chunk = self.send_message(message=message)
             question = chunk['text']
@@ -182,7 +187,11 @@ class Navigator(BaseNavigator):
             question = self.send_message(message)
         elif mode == "human":
             question = input("Enter the question: ")
+        else:
+            raise ValueError("Invalid mode")
+        self.log_info["qa_messages"]['question'].append(question)
        
+        # get answer from QA agent
         help_message = self.oracle.get_answer(question)
         return help_message
 
@@ -193,40 +202,64 @@ class Navigator(BaseNavigator):
         self.help_message = None
         self.visualization.init_current_node(self.graph_state[0])
 
-        i = 0
-        while True: 
+        instruction_ctn = 0
+        step = 0
+        self.log_info = {'step': step}
+        while True:     
+            if step > self.log_info['step']: # new state, reset log_info
+                self.log_infos.append(self.log_info)
+                self.log_info = {'step': step}
             # get current state
             current_nodeid = self.graph_state[0]
             heading = self.graph_state[1]
             candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
             candidate_nodeid = [node.panoid for node in candidate_nodes]
-            self.visualization.update(current_nodeid, candidate_nodeid)
+            agent_vis_file = self.visualization.update(current_nodeid, candidate_nodeid)
+            
+            self.log_info["current_state"] = self.graph_state
+            self.log_info["agent_vis"] = agent_vis_file
     
             # get action/move
             if self.help_message: # is asking for help, previous action is lost
-                message = self.get_navigation_instructions(self.help_message, phase="help")
+                message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
                 self.help_message = None
                 action = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
-                message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[i])
-                i += 1
+                self.log_info["image_urls"] = image_urls
+                message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[instruction_ctn])
+                instruction_ctn += 1
                 action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
                 
+            if 'message' not in self.log_info:
+                self.log_info['message'] = []
+            self.log_info["message"].append(message)
+            self.log_info["action"] = action
+                
             if action == 'stop': 
+                step += 1
                 print("Action stop is chosen")
-                break
             elif action == 'lost':
+                if 'qa_messages' not in self.log_info:
+                    self.log_info['qa_messages'] = {'question': [], 'answer': []}
+                self.log_info['qa_messages']['question'].append('lost')
                 self.help_message = self.ask_for_help(mode=self.action_mode)
+                self.log_info['qa_messages']['answer'].append(self.help_message)
             else:
+                step += 1
                 err_message = self.step(action)
                 if err_message != '':  # if has err, pass err message as help message
                     self.help_message = err_message
                                     
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
-                # yield self.graph_state
-        return self.log_info
+                
+            if action == 'stop':
+                self.log_infos.append(self.log_info)
+                with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
+                    json.dump(self.log_infos, f)    
+                    
+            yield self.log_info
     
 class Oracle: 
     def __init__(self, oracle_config: dict): 
@@ -257,20 +290,23 @@ def show_graph_info(graph):
 
 if __name__ == "__main__":   
 
-    # navi_config = r"config\human_test_navi.json"
+    navi_config = r"config\human_test_navi.json"
     # navi_config = os.path.join("config", "openai_test_navi_3.json")
-    navi_config = r"config\poe_test_navi.json"
+    # navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
     vision_config = "config/human_test_vision.json"
     map_config = "config/overpass_streetmap_map.json"
 
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, show_info=True)
-    navigator.forward(('65303689', 0))
-    # # show_graph_info(navigator.graph)
-    # image_features = navigator.get_image_feature(graph_state=('65287201', 0), mode="poe_send_message")
-    # print(image_features)
-    # test = navigator.get_navigation_action(image_urls=image_features, message="Where are we")
-    # print(test)
+    task = navigator.forward(('65303689', 0))
+    while True:
+        info = next(task)
+        print(info)
+        action = info["action"]
+        if action == "stop":
+            break
+    
+    
 
         
     

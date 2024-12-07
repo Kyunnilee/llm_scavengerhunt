@@ -1,5 +1,4 @@
 from openai import OpenAI
-from typing import List, Dict
 import os 
 
 api_key=os.environ.get("OPENAI_API_KEY")
@@ -11,7 +10,7 @@ class VisionAnswering:
         self.image_system = config['image_system']
         self.model = config['model']
     
-    def get_image_summary(self, image_path: str, is_debug: bool = False): 
+    def get_image_summary(self, image_path, is_debug): 
         content =[
             {"type": "text", "text": self.image_system}, 
             {
@@ -37,16 +36,13 @@ class VisionAnswering:
         resp =  response.choices[0].message.content
         return resp
 
-    def order_image_summaries(self, offsets: List[int], image_paths: List[str], qa_prompt: str = None, is_debug: bool = False): 
+    def order_image_summaries(self, offsets, image_paths, is_debug): 
         op = {}
-        if qa_prompt != None: 
-            self.base_system_prompt += "You should focus on identifying certain key landmarks / signs within the image that are mentioned within this exerpt: " + qa_prompt + ". If all of the landmarks mentioned within the exerpt are present in the image, you should explicitly mention so."
-
         for i in range(len(image_paths)): 
             resp = self.get_image_summary(image_paths[i], is_debug)
             op[offsets[i]] = resp    
-        return op
-            
+        return op 
+
 if __name__=="__main__": 
     test_prompt = """You are a helpful assistant replying to image queries, observing key details within the picture with the aim to identify exactly where you are"""
     test_config = {
