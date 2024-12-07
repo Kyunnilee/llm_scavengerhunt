@@ -113,7 +113,7 @@ class Navigator(BaseNavigator):
                 image_feed = image_urls
             elif self.vision_mode == "vision_answering":
                 image_feed = []
-                map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+                map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, self.help_message, False)
                 new_message = ""
                 for k, v in map_of_summaries.items(): 
                     new_message += f"At your {k} heading, we see {v}."
