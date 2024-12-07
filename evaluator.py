@@ -72,8 +72,8 @@ class AgentEvaluator:
         
         return scores
 
-    def calculate_score(self, total_response):
-        num_questions, num_steps, finished = self.evaluate_misc(total_response)
+    def calculate_score(self, total_response, shortest_step):
+        num_questions, num_steps, finished = self.evaluate_misc(total_response, shortest_step)
         (action_score, justification_action), (question_score, justification_question) = self.evaluate_response(total_response)
 
         # Current implementation does not use for loops, should change to this if the prompt size becomes too big
