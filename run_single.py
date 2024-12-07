@@ -118,7 +118,7 @@ last_step_button = gr.Button("Last Step")
 next_step_button = gr.Button("Next Step")
 
 total_steps_num = gr.Number(label="Total Steps", value=0, interactive=False)
-current_step_num = gr.Number(label="Current Step", value=0, interactive=False)
+current_step_num = gr.Number(label="Current Step", value=-1, interactive=False)
 
 init_prompt_text = gr.Textbox(label="Initial Prompt", interactive=False)
 step_prompt_text = gr.Textbox(label="Step Prompt", interactive=False)
