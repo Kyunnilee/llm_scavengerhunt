@@ -73,21 +73,19 @@ class Graph:
 
     def get_path(self, node_from, node_to):
         """
-        Use UCS to find the shortest path from node_from to node_to.
-        Cost is defined as the distance between nodes.
+        Use BFS to find the shortest path (in terms of number of steps) 
+        from node_from to node_to. 
         Returns a list of `panoid`s, indicating the path.
         """
         if node_from not in self.nodes or node_to not in self.nodes:
             raise ValueError("Both start and end nodes must exist in the graph.")
         
-        # Priority queue for UCS
-        priority_queue = []  # (cumulative_cost, current_node, path_so_far)
-        heapq.heappush(priority_queue, (0, self.nodes[node_from], [])) 
-        
+        # Queue for BFS
+        queue = deque([(self.nodes[node_from], [])])  # (current_node, path_so_far)
         visited = set()
         
-        while priority_queue:
-            cumulative_cost, current_node, path = heapq.heappop(priority_queue)
+        while queue:
+            current_node, path = queue.popleft()
             
             if current_node.panoid == node_to:
                 return path + [current_node.panoid]
@@ -98,8 +96,7 @@ class Graph:
             
             for neighbor_heading, neighbor in current_node.neighbors.items():
                 if neighbor.panoid not in visited:
-                    step_cost = haversine(current_node.coordinate, neighbor.coordinate)
-                    heapq.heappush(priority_queue, (cumulative_cost + step_cost, neighbor, path + [current_node.panoid]))
+                    queue.append((neighbor, path + [current_node.panoid]))
         
         return None
 

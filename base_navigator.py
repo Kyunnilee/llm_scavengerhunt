@@ -2,7 +2,7 @@ import os
 from graph_loader import GraphLoader
 
 turn_around_angle_limit = 60
-TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), int(180+1+turn_around_angle_limit/2))
+TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), 180+1)
 LEFT_RIGHT_RANGE = range(1, int(180-turn_around_angle_limit/2))
 
 
@@ -164,6 +164,9 @@ class BaseNavigator:
         """
         # Get the path between nodes
         path = self.graph.get_path(node_from=node_from, node_to=node_to)
+
+        print(path)
+
         if not path:
             raise ValueError(f"No path found between {node_from} and {node_to}.")
 
@@ -197,6 +200,7 @@ class BaseNavigator:
 
             # Calc action based on the heading difference
             diff = int((next_heading - current_heading) % 360)
+            print(f"at node {action_sequence[-1][1]}, diff={diff}")
             if diff in TURN_AROUND_RANGE:
                 action = "turn_around"
             elif diff in LEFT_RIGHT_RANGE:
@@ -207,14 +211,11 @@ class BaseNavigator:
             else:
                 action = "forward"
 
-            # print(f"curr heading: {current_heading}")
-            # print(f"next heading: {next_heading}")
-            # print(f"action: {action}")
-            # print()
-
             action_sequence.append((action, next_node.panoid))
 
         return action_sequence
+
+
 
     def show_state_info(self, graph_state):
         '''Given a graph state, show current state information and available next moves.'''
@@ -245,8 +246,12 @@ class BaseNavigator:
         return message
 
 if __name__ == "__main__":
+
+    print(TURN_AROUND_RANGE)
+    print(LEFT_RIGHT_RANGE)
+
     test_nav = BaseNavigator()
     test_path = test_nav._get_correct_action_sequence(
-        node_from="1243846572", node_to="6910182916", init_heading=82
+        node_from="6958214919", node_to="370202538", init_heading=82
     )
     print(test_path) 
