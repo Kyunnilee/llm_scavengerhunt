@@ -15,10 +15,19 @@ class AgentEvaluator:
         '''
         Evaluate the number of questions asked (int), number of steps took to reach destination (int), and whether the agent finished (bool)
 
-        total_response: List of pairs in the following format [("Context: " + message, "Agent Action: " + action)]
+        total_response: List of pairs in the following format [("Context: " + message, "Agent Action: " + action)]/ One node, one action
         '''
-        # TODO: Implement this method
-        num_questions, num_steps, finished = None
+        # total_response = "Context message and action message string" 
+        num_questions, num_steps = None
+        finished = False
+
+        num_questions = len([pair for pair in total_response if "lost" in pair[1]])
+        num_steps = len(total_response) # length of the list of pairs
+
+        for pair in total_response: # mark finished true if agent action is "stop"
+            if "stop" in pair[1]:
+                finished = True
+                break
 
         return num_questions, num_steps, finished
 
@@ -33,7 +42,7 @@ class AgentEvaluator:
     #     ]
     #     full_message = [
     #         {"role": "system", "content": self.base_system_prompt},
-    #         {"role": "user", "content": content}
+    #         {"role": "user", "content": contet}
     #     ]
     #     movement_score, justification = self.client.chat.completions.create(
     #         model=self.model,
