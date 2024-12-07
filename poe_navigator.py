@@ -204,11 +204,11 @@ class Navigator(BaseNavigator):
 
         instruction_ctn = 0
         step = 0
-        self.log_info = {'step': step}
+        self.log_info = {'step': step, 'log_root': self.log_root}
         while True:     
             if step > self.log_info['step']: # new state, reset log_info
                 self.log_infos.append(self.log_info)
-                self.log_info = {'step': step}
+                self.log_info = {'step': step, 'log_root': self.log_root}
             # get current state
             current_nodeid = self.graph_state[0]
             heading = self.graph_state[1]

@@ -1,17 +1,101 @@
 from poe_navigator import Navigator
 import gradio as gr
+from gradio import ChatMessage
 import matplotlib.pyplot as plt
 import os
 import sys
+import json
 
 def update_config_files():
     new_navi_choices = [file.split('.')[0] for file in os.listdir(config_root) if "navi" in file]
     new_vision_choices = [file.split('.')[0] for file in os.listdir(config_root) if "vision" in file]
     new_oracle_choices = [file.split('.')[0] for file in os.listdir(config_root) if "oracle" in file]
     new_map_choices = [file.split('.')[0] for file in os.listdir(config_root) if "map" in file]
-    return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_oracle_choices), gr.update(value=[], choices=new_map_choices)
+    new_task_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]   
+    return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_oracle_choices), gr.update(value=[], choices=new_map_choices), gr.update(value=[], choices=new_task_choices)
+
+def start_navigation(navi_config, vision_config, oracle_config, map_config):
+    navi_config = os.path.join(config_root, navi_config[0]+".json")
+    oracle_config = os.path.join(config_root, oracle_config[0]+".json")
+    vision_config = os.path.join(config_root, vision_config[0]+".json")
+    map_config = os.path.join(config_root, map_config[0]+".json")
+    
+    global navigator
+    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config,show_info=False)
+    
+    with open(navi_config, "r") as f:
+        navi_config_data = json.load(f)
+    init_prompt = navi_config_data["policy"]
+    
+    
+    return init_prompt, gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False)
+
+def run_navigation(task_config):
+    
+    with open(os.path.join(config_root, task_config[0]+".json"), "r") as f:
+        task_config_data = json.load(f)
+    start_state = (task_config_data["start_id"], task_config_data["start_heading"])
+    
+    global navigator, infos_state
+    task = navigator.forward(start_state)
+    
+    while True:
+        info = next(task)
+        step = info["step"]
+        
+        if step >= len(infos_state):
+            infos_state.append(info)
+            assert len(infos_state) == step + 1
+        else:
+            infos_state[step] = info
+    
+        action = info["action"]
+        yield step
+        if action == "stop":
+            break
+    return step
+    
+def step_button_click(current_step, step_change):
+    new_current_step = current_step + step_change
+    global infos_state
+    if new_current_step < 0 or new_current_step >= len(infos_state):
+        print("Invalid step")
+        return current_step
+    return new_current_step
+    
+
+def update_current_step(current_step):
+    global infos_state
+    if current_step < 0 or current_step >= len(infos_state):
+        print("Invalid step")
+        raise ValueError("Invalid step")
+    info = infos_state[current_step]
+    action = info["action"]
+    panoid = info["current_state"][0]
+    heading = info["current_state"][1]
+    agent_vis_path = info["agent_vis"]
+    log_root = info["log_root"]
+    
+    messages = info["message"]
+    message = "\n".join(messages)
+    
+    vision_input_images = info["image_urls"]
+    if "qa_messages" in info:
+        question = info["qa_messages"]["question"]
+        answer = info["qa_messages"]["answer"]
+        qa_messages = []
+        for i in range(len(question)):
+            qa_messages.append(dict(role="user", content=question[i]))
+            qa_messages.append(dict(role="assistant", content=answer[i]))
+    else:
+        qa_messages = gr.skip()
+    return qa_messages, panoid, heading, message, action, log_root, agent_vis_path, vision_input_images
 
 config_root = "config"
+navigator = None
+infos_state = []
+
+auto_update_state = gr.State(value=True)
 
 navi_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "navi" in file]
 navi_config_selection = gr.Dropdown(value=[],label="Navigator Config", choices=navi_config_choices, max_choices=1, multiselect=True, interactive=True)
@@ -24,6 +108,9 @@ oracle_config_selection = gr.Dropdown(value=[],label="Oracle Config", choices=or
 
 map_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "map" in file]
 map_config_selection = gr.Dropdown(value=[],label="Map Config", choices=map_config_choices, max_choices=1, multiselect=True, interactive=True)
+
+task_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]
+task_config_selection = gr.Dropdown(value=[],label="Task Config", choices=task_config_choices, max_choices=1, multiselect=True, interactive=True)
     
 start_button = gr.Button("Start!")
 refresh_button = gr.Button("Refresh")
@@ -44,7 +131,7 @@ log_root_text = gr.Textbox(label="Log Root", interactive=False)
 
 qa_chatbot = gr.Chatbot(type="messages", label="QA System")
 
-agen_vis_image = gr.Image(label="Agent Visualization", interactive=False)
+agent_vis_image = gr.Image(label="Agent Visualization", interactive=False)
 vision_input_images = gr.Gallery(label="Vision Input", show_label=True, columns=5, rows=1, height="auto", interactive=False)
 
 with gr.Blocks() as demo:
@@ -53,6 +140,7 @@ with gr.Blocks() as demo:
         vision_config_selection.render()
         oracle_config_selection.render()
         map_config_selection.render()
+        task_config_selection.render()
         refresh_button.render()
     with gr.Row(equal_height=True):
         start_button.render()
@@ -66,7 +154,7 @@ with gr.Blocks() as demo:
             action_text.render()
             qa_chatbot.render()
         with gr.Column(scale=2):
-            agen_vis_image.render()
+            agent_vis_image.render()
             with gr.Row():
                 last_step_button.render()
                 next_step_button.render()
@@ -77,8 +165,14 @@ with gr.Blocks() as demo:
     with gr.Row():
         log_root_text.render()
         
-    refresh_button.click(fn=update_config_files, inputs=None, outputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection])
+    refresh_button.click(fn=update_config_files, inputs=None, outputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection])
+    
+    start_button.click(fn=start_navigation, inputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection], outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection, refresh_button]).then(run_navigation, inputs=[task_config_selection], outputs=[total_steps_num])
+    
+    last_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(-1)], outputs=[current_step_num])
+    next_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(1)], outputs=[current_step_num])
        
+    current_step_num.change(fn=update_current_step, inputs=[current_step_num], outputs=[qa_chatbot, position_text, heading_text, step_prompt_text, action_text, log_root_text, agent_vis_image, vision_input_images])
 
 if __name__ == "__main__":
     demo.launch()
