@@ -5,8 +5,9 @@ from openai_agent import OpenAIAgent
 from poe_agent import PoeAgent
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
 import os 
-import config.map_config as map_config
+# import config.map_config as map_config
 import re
+import time
 from util import AgentVisualization
 from external_vision import VisionAnswering
 
@@ -16,27 +17,48 @@ base_dir = os.getcwd() # Get cwd current working directory
 
 class Navigator(BaseNavigator):
     
-    def __init__(self, config, oracle_config, answering_config, show_info=False): 
-        super().__init__()
+    def __init__(self, config:str, oracle_config:str, answering_config:str, map_config: str|dict, show_info:bool=False): 
         
-        self.image_root = map_config.data_paths['image_root']
-        self.show_info = show_info
+        if isinstance(map_config, dict):
+            map_config_data = map_config
+        elif isinstance(map_config, str):
+            with open(map_config, 'r') as f:
+                map_config_data = json.load(f)
+                
+        super().__init__(map_config_data)
+
+        if 'log_root' in map_config_data: # legacy
+            self.log_root = map_config_data['log_root']
+        else:
+            log_dir_name = f"{time.strftime('%Y%m%d-%H%M%S')}_logs"
+            self.log_root = os.path.join('output', 'logs', log_dir_name)
+        os.makedirs(self.log_root, exist_ok=True)    
+        
+        self.log_info = {} # used in gradio
+        self.show_info = show_info # show visualization and info in console
        
-        print(f"Loading config from {config}")
+        print(f"[init]Loading config from {config}")
         with open(config, 'r') as f:
             self.config = json.load(f)
 
-        print(f"Loading oracle config from {oracle_config}")
+        print(f"[init]Loading oracle config from {oracle_config}")
         with open(oracle_config, 'r') as f:
             oracle_config_data = json.load(f)
             self.oracle = Oracle(oracle_config_data)
         
+        print(f"[init]Loading vision config from {answering_config}")
         with open(answering_config, 'r') as f: 
             answering_config_data = json.load(f)
             self.answering = VisionAnswering(answering_config_data)
-
+            
+        if "vision_mode" in self.config: # vision_answering or url
+            self.vision_mode = self.config["vision_mode"]
+        else:
+            self.vision_mode = "vision_answering"
+        print(f"[init]Vision mode: {self.vision_mode}")    
+        
         control_mode = self.config['mode']
-        print(f"Control mode: {control_mode}")
+        print(f"[init]Control mode: {control_mode}")
         self.offsets = [-90, -45, 0, 45, 90]
         if control_mode == "poe":
             self.client = PoeAgent(self.config) 
@@ -47,23 +69,22 @@ class Navigator(BaseNavigator):
         elif control_mode == "human":
             self.action_mode = "human"
         
-        #self.qa_client = QA_Agent()
+        self.qa_client = QA_Agent()
 
-        if show_info:
-            self.visualization = AgentVisualization(self.graph, self.image_root)
+        # if show_info:
+        #     self.visualization = AgentVisualization(self.graph, self.image_root)
     
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
     
     def parse_action(self, action_message: str):
         '''
-        match [forward, left, right, stop, lost]
+        match [forward, left, right, turn_around, stop, lost]
         '''
         acton_space = ["forward", "left", "right", "turn_around", "stop", "lost"]
     
         match = re.search(r'\[Action:\s*(.*?)\]', action_message)
         if match: # try to match `[Action: ...]` first
-            print(f"Match: {match.group(1)}")
             action = match.group(1)
             if action in acton_space:
                 return action
@@ -92,31 +113,31 @@ class Navigator(BaseNavigator):
             message = help_message
         return message
     
-    def get_navigation_action(self, image_urls, message: str, mode="poe_send_message"):
-        # map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
-        # image_summaries = ""
-        # for k, v in map_of_summaries.items(): 
-        #     image_summaries += f"At your {k} heading, we see {v}."
-
+    def get_navigation_action(self, image_urls, message: str, mode="poe_send_message"):    
+        # vision information    
+        if image_urls != [] and image_urls != None:
+            if self.vision_mode == "url":
+                image_feed = image_urls
+            elif self.vision_mode == "vision_answering":
+                image_feed = []
+                map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+                new_message = ""
+                for k, v in map_of_summaries.items(): 
+                    new_message += f"At your {k} heading, we see {v}."
+                message += new_message
+            else:
+                raise ValueError("Invalid vision mode") 
+            
         if self.show_info:
             print("*"*50, "[get_navigation_action] System input:")
             print("Getting navigation action")
             print(f"Message: {message}")
             print(f"Image features: {image_urls}")
-            #print(f"Image Interpretation: {image_summaries}")
-            print("*"*50)
-            
+            print("*"*50)   
+                    
         if mode == "poe_send_message":
-            #False here is for the is_debug flag // Can remove 
-            # map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
-            # new_message = ""
-            # for k, v in map_of_summaries.items(): 
-            #     new_message += f"At your {k} heading, we see {v}."
-            #message += image_summaries
-            print(message)
-            chunk = self.send_message(message=message)
+            chunk = self.send_message(message=message, files=image_feed)
             action_message = chunk["text"]
-            print(action_message)
             action = self.parse_action(action_message)
             if self.show_info:
                 print("="*50, "[get_navigation_action] Agent output:")
@@ -124,6 +145,7 @@ class Navigator(BaseNavigator):
                 print(f"Action: {action}")
                 print("="*50)
         elif mode == "openai":
+            action_message = self.send_message(message, files=image_feed)
             # map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
             # new_message = ""
             # for k, v in map_of_summaries.items(): 
@@ -138,6 +160,8 @@ class Navigator(BaseNavigator):
                 print("="*50)
         elif mode == "human":
             action = input("Enter the move: ")
+        else:
+            raise ValueError("Invalid mode")
         return action
     
     def get_image_feature(self, graph_state, mode="human"):
@@ -188,15 +212,15 @@ class Navigator(BaseNavigator):
         agent_move = []
         agent_response = []
         while True: 
-            if self.show_info: 
-                current_nodeid = self.graph_state[0]
-                heading = self.graph_state[1]
-                candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
-                candidate_nodeid = [node.panoid for node in candidate_nodes]
-                
-                #self.visualization.update(current_nodeid, candidate_nodeid)
+            # get current state
+            current_nodeid = self.graph_state[0]
+            heading = self.graph_state[1]
+            candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
+            candidate_nodeid = [node.panoid for node in candidate_nodes]
+            self.visualization.update(current_nodeid, candidate_nodeid)
+    
             # get action/move
-            if self.help_message: # is asking for help
+            if self.help_message: # is asking for help, previous action is lost
                 message = self.get_navigation_instructions(self.help_message, phase="help")
                 self.help_message = None
                 action = self.get_navigation_action([], message, mode=self.action_mode)
@@ -221,6 +245,8 @@ class Navigator(BaseNavigator):
                                     
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
+                # yield self.graph_state
+        return self.log_info
     
 class Oracle: 
     def __init__(self, oracle_config: dict): 
@@ -251,11 +277,12 @@ def show_graph_info(graph):
 
 if __name__ == "__main__":   
 
-    #navi_config = r"config\human_test_navi.json"
-    navi_config = os.path.join("config", "openai_test_navi_3.json")
-    # navi_config = r"config\poe_test_navi.json"
+    # navi_config = r"config\human_test_navi.json"
+    # navi_config = os.path.join("config", "openai_test_navi_3.json")
+    navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
-    vision_config = r"config\human_test_vision.json"
+    vision_config = "config/human_test_vision.json"
+    map_config = "config/overpass_streetmap_map.json"
 
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, show_info=True)
     # show_graph_info(navigator.graph)

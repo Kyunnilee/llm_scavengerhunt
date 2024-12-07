@@ -107,6 +107,7 @@ class GraphLoader:
     def __init__(self, cfg: dict=None):
         self.graph = Graph()
         if cfg is None:
+            print("Using Legacy Map Config...")
             self.node_file = config.paths['node']
             self.link_file = config.paths['link']
         else:

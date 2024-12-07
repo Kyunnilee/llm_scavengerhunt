@@ -7,8 +7,11 @@ LEFT_RIGHT_RANGE = range(1, int(180-turn_around_angle_limit/2))
 
 
 class BaseNavigator:
-    def __init__(self):
-        self.graph = GraphLoader().construct_graph()
+    def __init__(self, cfg: dict=None):
+        if cfg is None:
+            self.graph = GraphLoader().construct_graph()
+        else:
+            self.graph = GraphLoader(cfg).construct_graph()
 
         self.graph_state = None
         self.prev_graph_state = None

@@ -1,3 +1,4 @@
 {
-    "mode": "human"
+    "mode": "human",
+    "vision_mode": "url"
 }
