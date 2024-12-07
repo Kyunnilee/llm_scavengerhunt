@@ -2,8 +2,10 @@ import os
 from graph_loader import GraphLoader
 
 turn_around_angle_limit = 60
-TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), int(180+1+turn_around_angle_limit/2))
-LEFT_RIGHT_RANGE = range(1, int(180-turn_around_angle_limit/2))
+forward_angle_limit = 90
+TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), 180+1)
+FORWARD_RANGE = range(0, int(forward_angle_limit/2))
+LEFT_RIGHT_RANGE = range(int(forward_angle_limit/2), int(180-turn_around_angle_limit/2))
 
 
 class BaseNavigator:
@@ -67,8 +69,10 @@ class BaseNavigator:
         '''
         curr_panoid, curr_heading = curr_state
         current_node = self.graph.nodes[curr_panoid]
-        _, diff = self._get_nearest_heading_and_diff(curr_state, current_node, go_towards)
-        if go_towards == 'turn_around':
+        _, diff = self._get_nearest_heading_and_diff(curr_state, current_node, go_towards, inplace=True)
+        if go_towards == 'forward':
+            return diff in FORWARD_RANGE
+        elif go_towards == 'turn_around':
             return diff in TURN_AROUND_RANGE
         elif go_towards == 'left' or go_towards == 'right':
             return diff in LEFT_RIGHT_RANGE
@@ -89,51 +93,63 @@ class BaseNavigator:
         return diff_func
         
     
-    def _get_nearest_heading(self, curr_state, next_node, go_towards):
+    def _get_nearest_heading(self, curr_state, next_node, go_towards, start=False):
         _, curr_heading = curr_state
         next_heading = None
 
         diff = float('inf')
         diff_func = self._get_diff_func(go_towards)
 
-        for heading in next_node.neighbors.keys():
+        for heading in next_node.neighbors.keys(): # next node could be same as current node, or next node (forward)
             if heading == curr_heading and go_towards != 'forward':
                 # don't match to the current heading when turning
                 continue
+            
             diff_ = diff_func(int(heading), int(curr_heading))
+            
+            if not start and go_towards == 'forward' and diff_ not in FORWARD_RANGE:
+                # don't automatical turn to nearest heading if no proper neighbor
+                continue
+            
             if diff_ < diff:
                 diff = diff_
                 next_heading = heading
 
         if next_heading is None:
             next_heading = curr_heading
-        return next_heading
+        return int(next_heading)
     
-    def _get_nearest_heading_and_diff(self, curr_state, next_node, go_towards):
+    def _get_nearest_heading_and_diff(self, curr_state, next_node, go_towards, inplace=False):
         _, curr_heading = curr_state
         next_heading = None
 
         diff = float('inf')
         diff_func = self._get_diff_func(go_towards)
 
-        for heading in next_node.neighbors.keys():
+        for heading in next_node.neighbors.keys(): # next node could be same as current node, or next node (forward)
             if heading == curr_heading and go_towards != 'forward':
                 # don't match to the current heading when turning
                 continue
+            
             diff_ = diff_func(int(heading), int(curr_heading))
+            
+            if go_towards == 'forward' and not inplace and diff_ not in FORWARD_RANGE:
+                # don't automatical turn to nearest heading if no proper neighbor
+                continue
+            
             if diff_ < diff:
                 diff = diff_
                 next_heading = heading
 
         if next_heading is None:
             next_heading = curr_heading
-        return next_heading, diff
+        return int(next_heading), diff
     
     def fix_heading(self, curr_state):
         '''Fix the heading of the current state based on the pano_yaw_angle of the current node.'''
         panoid, heading = curr_state
         curr_node = self.graph.nodes[panoid]
-        new_heading = self._get_nearest_heading(curr_state, curr_node, 'forward')
+        new_heading = self._get_nearest_heading(curr_state, curr_node, 'forward', start=True)
         return panoid, new_heading
 
     def get_available_next_moves(self, graph_state):
@@ -143,8 +159,9 @@ class BaseNavigator:
         available_next_states = []
         for action in next_actions:
             if action == 'forward':
-                available_actions.append(action)
-                available_next_states.append(self._get_next_graph_state(graph_state, action))
+                if self._check_action_validity(graph_state, action):
+                    available_actions.append(action)
+                    available_next_states.append(self._get_next_graph_state(graph_state, action))
             elif action == 'left' or action == 'right' or action == 'turn_around':
                 if self._check_action_validity(graph_state, action):
                     available_actions.append(action)

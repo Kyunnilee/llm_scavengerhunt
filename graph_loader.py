@@ -54,6 +54,7 @@ class Graph:
             end_node.coordinate[1] - start_node.coordinate[1], 
             end_node.coordinate[0] - start_node.coordinate[0]
         ) / math.pi * 180
+        heading = int(heading)
         # if not start_node.neighbors[heading]:
         start_node.neighbors[heading] = end_node
         # else:
