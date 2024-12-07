@@ -146,12 +146,6 @@ class Navigator(BaseNavigator):
                 print("="*50)
         elif mode == "openai":
             action_message = self.send_message(message, files=image_feed)
-            # map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
-            # new_message = ""
-            # for k, v in map_of_summaries.items(): 
-            #     new_message += f"At your {k} heading, we see {v}."
-            #message += image_summaries
-            action_message = self.send_message(message)
             action = self.parse_action(action_message)
             if self.show_info:
                 print("="*50, "[get_navigation_action] Agent output:")
@@ -208,8 +202,8 @@ class Navigator(BaseNavigator):
         #self.visualization.init_current_node(self.graph_state[0])
 
         i = 0
-        agent_lost = []
-        agent_move = []
+        # agent_lost = []
+        # agent_move = []
         agent_response = []
         while True: 
             # get current state
@@ -224,13 +218,13 @@ class Navigator(BaseNavigator):
                 message = self.get_navigation_instructions(self.help_message, phase="help")
                 self.help_message = None
                 action = self.get_navigation_action([], message, mode=self.action_mode)
-                agent_lost.append((message, action))
+                #agent_lost.append((message, action))
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
                 message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_2) else NAVIGATION_LVL_2[i])
                 i += 1
                 action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
-                agent_move.append((message, action))
+                #agent_move.append((message, action))
             
             agent_response.append(("Context: " + message, "Agent Action: " + action))
             if action == 'stop': 
