@@ -10,6 +10,7 @@ import re
 import time
 from util import AgentVisualization
 from external_vision import VisionAnswering
+from evaluator import AgentEvaluator
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 base_dir = os.getcwd() # Get cwd current working directory
@@ -57,6 +58,11 @@ class Navigator(BaseNavigator):
             self.vision_mode = "vision_answering"
         print(f"[init]Vision mode: {self.vision_mode}")    
         
+        
+        with open(eval_config, 'r') as f:
+            eval_config_data = json.load(f)
+            self.evaluator = AgentEvaluator(eval_config_data)
+
         control_mode = self.config['mode']
         print(f"[init]Control mode: {control_mode}")
         self.offsets = [-90, -45, 0, 45, 90]
@@ -229,6 +235,7 @@ class Navigator(BaseNavigator):
             agent_response.append(("Context: " + message, "Agent Action: " + action))
             if action == 'stop': 
                 print("Action stop is chosen")
+                self.evaluator.calculate_score(agent_response)
                 break
             elif action == 'lost':
                 self.help_message = self.ask_for_help(mode=self.action_mode)
@@ -275,10 +282,11 @@ if __name__ == "__main__":
     # navi_config = os.path.join("config", "openai_test_navi_3.json")
     navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
-    vision_config = "config/human_test_vision.json"
     map_config = "config/overpass_streetmap_map.json"
+    vision_config = os.path.join("config", "human_test_vision.json")
+    eval_config = os.path.join("config", "evaluator.json")
 
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, show_info=True)
+    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, eval_config=eval_config, show_info=True)
     # show_graph_info(navigator.graph)
     # navigator.forward(
     #     start_graph_state=('65287201', 0),

@@ -1,5 +1,6 @@
 from openai import OpenAI
-import os 
+import os
+import json
 
 api_key=os.environ.get("OPENAI_API_KEY")
 TODO = ""
@@ -61,7 +62,7 @@ class AgentEvaluator:
 
     def calculate_score(self, total_response):
         num_questions, num_steps, finished = self.evaluate_misc(total_response)
-        (action_score, justification_action), (question_score, justification_question) = self.evaluate_response(total_response)
+        (action_score, justification_action), (question_score, justification_question) = self.evaluate_response(str(total_response))
 
         # Current implementation does not use for loops, should change to this if the prompt size becomes too big
         # for response in agent_lost:
@@ -96,3 +97,6 @@ if __name__=="__main__":
         'system_prompt': test_prompt, 
         'model': 'gpt-4o-mini' 
     }
+
+    with open("evaluator.json", "w") as json_file:
+        json.dump(test_config, json_file, indent=4)
