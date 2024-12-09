@@ -72,7 +72,45 @@ class Navigator(BaseNavigator):
         # self.qa_client = QA_Agent()
         vis_silent = False if show_info else True
         self.visualization = AgentVisualization(self.graph, self.log_root, silent=vis_silent)
-    
+
+    def get_initial_prompt(self, start_config_file: str): #assuming this is a json config like overpasstask1 
+        with open(start_config_file, 'r') as f: 
+            content = json.load(f)
+        
+        start_lat = content['start']['lat']
+        start_lon = content['start']['lon']
+        target_lat = content['target']['lat']
+        target_lon = content['target']['lon']
+
+        def get_general_direction(start_lat, start_lon, target_lat, target_lon):
+            if target_lon > start_lon:
+                horizontal = "right" 
+            elif target_lon < start_lon:
+                horizontal = "left"  
+            else:
+                horizontal = None
+
+            if target_lat > start_lat:
+                vertical = "up"  
+            elif target_lat < start_lat:
+                vertical = "down" 
+            else:
+                vertical = None
+
+            if horizontal and vertical:
+                return f"{vertical} and {horizontal}"
+            elif horizontal:
+                return horizontal
+            elif vertical:
+                return vertical
+            else:
+                return "same location"
+
+        general_direction = get_general_direction(start_lat, start_lon, target_lat, target_lon)
+        path = f"https://maps.googleapis.com/maps/api/streetview?size=300x300&location={target_lat},{target_lon}&key=AIzaSyDv1zr5JJYKjv3MGIeYNEe5n1nP4gv2SSY&fov=90&heading=0&pitch=0&source=outdoor"
+        target_summary = VisionAnswering.get_image_summary(path, False)
+        return general_direction, target_summary
+         
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
     
