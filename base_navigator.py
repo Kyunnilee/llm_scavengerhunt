@@ -12,14 +12,19 @@ LEFT_RIGHT_RANGE = range(int(forward_angle_limit/2), int(180-turn_around_angle_l
 
 
 class BaseNavigator:
-    def __init__(self, cfg: dict=None):
-        if cfg is None:
-            self.graph: Graph = GraphLoader().construct_graph()
-        else:
-            self.graph: Graph = GraphLoader(cfg).construct_graph()
+    def __init__(self, task_config:dict, map_config:dict):
+       
+        self.graph: Graph = GraphLoader(map_config).construct_graph()
 
         self.graph_state = None # Tuple[curr_panoid, curr_heading]
         self.prev_graph_state = None
+        
+        self.task_config = task_config
+        self.start_node: str = task_config["start_node"]
+        self.target_infos: List[dict] = task_config["target_infos"] # key: panoid, status, ...
+        for info in self.target_infos:
+            info["status"] = False
+        self.arrive_threshold: int = task_config["arrive_threshold"]
 
         # TODO: 
         # 1. 重构代码：BaseNavigator 区分 graph cfg 和 task cfg
@@ -297,8 +302,34 @@ class BaseNavigator:
             action_list += curr_action_list
         
         return action_list
+    
+    def check_arrival(self):
+        '''
+        Check if the navigator has arrived at the target node.
+        '''
+        lat, log = self.graph.nodes[self.graph_state[0]].coordinate
+        for info in self.target_infos:
+            if info["status"]:
+                continue
+            target_lat, target_log = self.graph.nodes[info["panoid"]].coordinate
+            distance = ((lat - target_lat) ** 2 + (log - target_log) ** 2) ** 0.5 # same in `target_finder.py`
+            
+            if distance < self.arrive_threshold:
+                info["status"] = True
+                return True, info
+        
+        return False, None
+    
+    def check_arrival_all(self):
+        '''
+        Check if the navigator has arrived at all target nodes.
+        '''
+        for info in self.target_infos:
+            if not info["status"]:
+                return False
+        return True
 
-
+    
     def collect_world_state(self):
         '''
         Collect all related world states as input of QA agent

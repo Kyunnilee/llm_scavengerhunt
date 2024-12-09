@@ -1,5 +1,11 @@
 {
-    "start_id": "3021675450",
+    "start_node": "3021675450",
     "start_heading": 0, 
-    "target": "4018840052"
+    "target_infos": [
+        {
+            "panoid": "7240836965",
+            "name": "A"
+        }
+    ],
+    "arrive_threshold": 5
 }

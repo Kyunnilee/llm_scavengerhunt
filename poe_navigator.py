@@ -22,16 +22,24 @@ class Navigator(BaseNavigator):
                  oracle_config:str, 
                  answering_config:str, 
                  map_config: str|dict, 
-                 # should be a task_cfg here
+                 task_config: str|dict,
                  show_info: bool=False): 
         
         if isinstance(map_config, dict):
             map_config_data = map_config
         elif isinstance(map_config, str):
+            print(f"[init]Loading map config from {map_config}")
             with open(map_config, 'r') as f:
                 map_config_data = json.load(f)
                 
-        super().__init__(map_config_data)
+        if isinstance(task_config, dict):
+            task_config_data = task_config
+        elif isinstance(task_config, str):
+            print(f"[init]Loading task config from {task_config}")
+            with open(task_config, 'r') as f:
+                task_config_data = json.load(f)
+                
+        super().__init__(task_config_data, map_config_data)
        
         print(f"[init]Loading config from {config}")
         with open(config, 'r') as f:
@@ -353,8 +361,14 @@ if __name__ == "__main__":
     oracle_config = os.path.join("config", "human_test_oracle.json")
     vision_config = os.path.join("config", "human_test_vision.json")
     map_config = os.path.join("config", "overpass_streetmap_map.json")
+    task_config = os.path.join("config", "overpass_task1.json")
 
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, show_info=True)
+    navigator = Navigator(config=navi_config, 
+                          oracle_config=oracle_config, 
+                          answering_config=vision_config, 
+                          map_config=map_config, 
+                          task_config=task_config,
+                          show_info=True)
     task = navigator.forward(('65303689', 0))
     while True:
         info = next(task)
