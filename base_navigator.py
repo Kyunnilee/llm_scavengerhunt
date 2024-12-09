@@ -219,16 +219,19 @@ class BaseNavigator:
             return ["right" for _ in range(turn_right_cnt)] + ["forward"]
 
         # if in left back or right back, turn around first then do the same as above
-        print(f"before: {curr_heading}")
+        # print(f"before: {curr_heading}")
         _, curr_heading = self._get_next_graph_state(
             (panoid_from, curr_heading), "turn_around"
         )
-        print("turn around to", curr_heading)
+        # print("turn around to", curr_heading)
+
+        if curr_heading == target_heading:
+            return ["turn_around", "forward"]
 
         # if in left 1-90°, return turn_left * N + forward
         left_func = self._get_diff_func("left")
         turn_left_angle = left_func(curr_heading=curr_heading, next_heading=target_heading)
-        if turn_left_angle in LEFT_RIGHT_RANGE or turn_left_angle in range(1, int(forward_angle_limit/2)):
+        if turn_left_angle in TURN_AROUND_RANGE:
             turn_left_cnt = 1
             for heading in self.graph.nodes[panoid_from].neighbors.keys():
                 if 0 < left_func(curr_heading=curr_heading, next_heading=heading) < turn_left_angle:
@@ -240,7 +243,7 @@ class BaseNavigator:
         # if in right 0-90°, return turn_left * N + forward
         right_func = self._get_diff_func("right")
         turn_right_angle = right_func(curr_heading=curr_heading, next_heading=target_heading)
-        if turn_right_angle in LEFT_RIGHT_RANGE or turn_right_angle in range(1, int(forward_angle_limit/2)):
+        if turn_right_angle in TURN_AROUND_RANGE:
             turn_right_cnt = 1
             for heading in self.graph.nodes[panoid_from].neighbors.keys():
                 if 0 < right_func(curr_heading=curr_heading, next_heading=heading) < turn_right_angle:
