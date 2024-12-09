@@ -3,8 +3,10 @@ from graph_loader import GraphLoader
 
 turn_around_angle_limit = 60
 forward_angle_limit = 90
-TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), 180+1)
+# TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), 180+1)
+
 FORWARD_RANGE = range(0, int(forward_angle_limit/2))
+TURN_AROUND_RANGE = range(0, int(turn_around_angle_limit/2 + 1))
 LEFT_RIGHT_RANGE = range(int(forward_angle_limit/2), int(180-turn_around_angle_limit/2))
 
 
@@ -87,7 +89,13 @@ class BaseNavigator:
         elif go_towards == 'right':
             diff_func = lambda next_heading, curr_heading: (next_heading - curr_heading) % 360
         elif go_towards == 'turn_around':
-            diff_func = lambda next_heading, curr_heading: 180 - abs(abs(next_heading - curr_heading) - 180)
+            def diff_func(next_heading, curr_heading):
+                if curr_heading < 0:
+                    curr_heading += 180
+                else:
+                    curr_heading -= 180
+                return 180 - abs(abs(next_heading - curr_heading) - 180)
+            return diff_func
         else:
             raise ValueError('Invalid action.')
         return diff_func
