@@ -258,63 +258,22 @@ class BaseNavigator:
     def _get_correct_action_sequence(self, node_from, node_to, init_heading):
         """
         Gets action sequence from given path.
-
-        Returns: List of (action, next_node) pairs. Each next_node is a str of panoid.
-        Example:
-                [(None, node_start), 
-                ("forward", node_1), 
-                ("right", node_2), ...]
+        Returns: List[str], List of actions.
         """
         # Get the path between nodes
         path = self.graph.get_path(node_from=node_from, node_to=node_to)
 
-        if not path:
-            raise ValueError(f"No path found between {node_from} and {node_to}.")
+        if len(path) <= 1:
+            return ["No action needed. You have arrived."]
 
-        # Init action sequence
-        action_sequence = [(None, path[0])]
+        action_list = []
+        for idx in range(len(path) - 1):
+            action_list += self._get_action_between_nodes(
+                panoid_from=path[idx], panoid_to=path[idx+1], curr_heading=init_heading
+            )
+        
+        return action_list
 
-        for i in range(len(path) - 1):
-            current_node = self.graph.nodes[path[i]]
-            next_node = self.graph.nodes[path[i + 1]]
-            
-            # Calc current heading
-            if i == 0:
-                current_heading = init_heading
-            else:
-                # Find heading to reach the current node from the previous node
-                prev_node = self.graph.nodes[path[i - 1]]
-                for heading, neighbor in prev_node.neighbors.items():
-                    if neighbor.panoid == current_node.panoid:
-                        current_heading = heading
-                        break
-                else:
-                    raise ValueError(f"Could not determine heading from {prev_node.panoid} to {current_node.panoid}.")
-            
-            # Find the heading from current_node to next_node
-            for heading, neighbor in current_node.neighbors.items():
-                if neighbor.panoid == next_node.panoid:
-                    next_heading = heading
-                    break
-            else:
-                raise ValueError(f"Could not determine heading from {current_node.panoid} to {next_node.panoid}.")
-
-            # Calc action based on the heading difference
-            diff = int((next_heading - current_heading) % 360)
-            print(f"at node {action_sequence[-1][1]}, diff={diff}")
-            if diff in TURN_AROUND_RANGE:
-                action = "turn_around"
-            elif diff in LEFT_RIGHT_RANGE:
-                if diff < 180:
-                    action = "right"
-                else:
-                    action = "left"
-            else:
-                action = "forward"
-
-            action_sequence.append((action, next_node.panoid))
-
-        return action_sequence
 
     def collect_world_state(self):
         '''
