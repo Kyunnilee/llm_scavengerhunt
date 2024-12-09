@@ -1,5 +1,6 @@
 import os
 from graph_loader import GraphLoader, Graph
+from typing import *
 
 turn_around_angle_limit = 60
 forward_angle_limit = 90
@@ -19,6 +20,12 @@ class BaseNavigator:
 
         self.graph_state = None # Tuple[curr_panoid, curr_heading]
         self.prev_graph_state = None
+
+        # TODO: 
+        # 1. Add self.target, type: panoid (str)
+        #    Tabi: Can visualize target node (e.g. blue mark?)
+        # 2. Add self.get_clue IN NAVIGATOR(NOT BASE), type: func, (curr_state -> str)
+        #    This is additional clue, excluded from some standard world states
 
     def navigate(self):
         raise NotImplementedError
@@ -267,10 +274,18 @@ class BaseNavigator:
             return ["No action needed. You have arrived."]
 
         action_list = []
+        curr_heading = init_heading
         for idx in range(len(path) - 1):
-            action_list += self._get_action_between_nodes(
-                panoid_from=path[idx], panoid_to=path[idx+1], curr_heading=init_heading
+            curr_action_list = self._get_action_between_nodes(
+                panoid_from=path[idx], panoid_to=path[idx+1], curr_heading=curr_heading, 
             )
+
+            for action in curr_action_list:
+                _, curr_heading = self._get_next_graph_state(
+                    curr_state=(path[idx], curr_heading), go_towards=action
+                )
+
+            action_list += curr_action_list
         
         return action_list
 
@@ -279,10 +294,17 @@ class BaseNavigator:
         '''
         Collect all related world states as input of QA agent
         '''
+        world_states: Dict[str, Any] = {}
 
         # 1. collect correct path from curr to target
+        world_states["path"] = self._get_correct_action_sequence(
+            node_from=self.graph_state[0], 
+            node_to=None, # TODO: See __init__
+            init_heading=self.graph_state[1], 
+        )
 
         # 2. collect global location of curr and target
+
 
         # 3. collect relative location of target (surroundings)
 
@@ -321,28 +343,33 @@ class BaseNavigator:
 if __name__ == "__main__":
     test_nav = BaseNavigator()
 
-    test_panoid_start = "65352337"
-    test_panoid_to = [node.panoid for node in \
-                      test_nav.graph.nodes[test_panoid_start].neighbors.values()]
-    test_panoid_start_heading = list(test_nav.graph.nodes[test_panoid_start].neighbors.keys())
+    # test_panoid_start = "65352337"
+    # test_panoid_to = [node.panoid for node in \
+    #                   test_nav.graph.nodes[test_panoid_start].neighbors.values()]
+    # test_panoid_start_heading = list(test_nav.graph.nodes[test_panoid_start].neighbors.keys())
 
-    print(test_panoid_start)
-    print(test_panoid_to)
+    # print(test_panoid_start)
+    # print(test_panoid_to)
+    # print(test_panoid_start_heading)
+
+    # for idx, target in enumerate(test_panoid_to):
+    #     for heading in test_panoid_start_heading:
+    #         result = test_nav._get_action_between_nodes(
+    #             panoid_from=test_panoid_start, 
+    #             panoid_to=target, 
+    #             curr_heading=heading
+    #         )
+    #         print(f"Config: target={target}, init_heading={heading}, target_heading={test_panoid_start_heading[idx]}")
+    #         print(f"Result: {result}")
+
+    test_panoid_start = "6639218292"
+    test_panoid_end = "5434001267"
+    test_panoid_start_heading = list(test_nav.graph.nodes[test_panoid_start].neighbors.keys())
     print(test_panoid_start_heading)
 
-    for idx, target in enumerate(test_panoid_to):
-        for heading in test_panoid_start_heading:
-            result = test_nav._get_action_between_nodes(
-                panoid_from=test_panoid_start, 
-                panoid_to=target, 
-                curr_heading=heading
-            )
-            print(f"Config: target={target}, init_heading={heading}, target_heading={test_panoid_start_heading[idx]}")
-            print(f"Result: {result}")
-
-
-
-    # test_path = test_nav._get_correct_action_sequence(
-    #     node_from="6958214919", node_to="370202538", init_heading=82
-    # )
-    # print(test_path) 
+    test_path = test_nav._get_correct_action_sequence(
+        node_from=test_panoid_start, 
+        node_to=test_panoid_end, 
+        init_heading=168
+    )
+    print(test_path) 
