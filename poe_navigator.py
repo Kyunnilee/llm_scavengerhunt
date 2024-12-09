@@ -232,6 +232,13 @@ class Navigator(BaseNavigator):
         # get answer from QA agent
         help_message = self.oracle.get_answer(question)
         return help_message
+    
+    def get_agent_vis(self, graph_state):
+        panoid, heading = graph_state
+        candidate_nodes = self.graph.get_candidate_nodes(panoid, heading)
+        candidate_nodeid = [node.panoid for node in candidate_nodes]
+        agent_vis_file = self.visualization.update(panoid, candidate_nodeid)
+        return agent_vis_file
 
     def forward(self, start_graph_state): 
         self.graph_state = start_graph_state
@@ -241,22 +248,23 @@ class Navigator(BaseNavigator):
         self.visualization.init_current_node(self.graph_state[0])
 
         instruction_ctn = 0
+        
+        # initial state
         step = 0
         self.log_info = {'step': step, 'log_root': self.log_root}
+        self.log_info["current_state"] = self.graph_state
+        self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
+        self.log_info["image_urls"] = self.get_image_feature(self.graph_state, mode=self.action_mode)
+        self.log_info["action"] = "start"
+        self.log_info["message"] = ["Start navigation"]
+        yield self.log_info
+        
+        step += 1
         while True:     
             if step > self.log_info['step']: # new state, reset log_info
                 self.log_infos.append(self.log_info)
                 self.log_info = {'step': step, 'log_root': self.log_root}
-            # get current state
-            current_nodeid = self.graph_state[0]
-            heading = self.graph_state[1]
-            candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
-            candidate_nodeid = [node.panoid for node in candidate_nodes]
-            agent_vis_file = self.visualization.update(current_nodeid, candidate_nodeid)
             
-            self.log_info["current_state"] = self.graph_state
-            self.log_info["agent_vis"] = agent_vis_file
-    
             # get action/move
             if self.help_message: # is asking for help, previous action is lost
                 message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
@@ -288,6 +296,11 @@ class Navigator(BaseNavigator):
                 err_message = self.step(action)
                 if err_message != '':  # if has err, pass err message as help message
                     self.help_message = err_message
+                    
+            # update visualization
+            agent_vis_file = self.get_agent_vis(self.graph_state)
+            self.log_info["current_state"] = self.graph_state
+            self.log_info["agent_vis"] = agent_vis_file
                                     
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
