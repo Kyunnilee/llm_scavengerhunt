@@ -22,10 +22,19 @@ class BaseNavigator:
         self.prev_graph_state = None
 
         # TODO: 
-        # 1. Add self.target, type: panoid (str)
-        #    Tabi: Can visualize target node (e.g. blue mark?)
-        # 2. Add self.get_clue IN NAVIGATOR(NOT BASE), type: func, (curr_state -> str)
+        # 1. 重构代码：BaseNavigator 区分 graph cfg 和 task cfg
+        #    why? 因为 collect world state 定义在 base 里面
+        #    所以必须要知道 task cfg （比如 target）
+        #    这部分可能会改变 Navigator.__init__ 的函数定义
+        #    从而导致 gradio 那边出问题，所以 Tabi 写一下
+        # 2. Add self.target, type: panoid (str)
+        #    Additional: Can Tabi visualize target node (e.g. blue mark?)
+        # 3. Add self.get_clue IN NAVIGATOR(NOT BASE), type: func, (curr_state -> str)
         #    This is additional clue, excluded from some standard world states
+        #    明天需要讨论一下需要哪些 clue，以及确定一些工程问题（例如 class 的具体成员变量，函数等等）
+        # 4. Merge QA_Agent and Oracle (By simonxie); 
+        #    Also, rewrite some new prompt 
+        #    (due to some idea & structural change)
 
     def navigate(self):
         raise NotImplementedError

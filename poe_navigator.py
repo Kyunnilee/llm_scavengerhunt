@@ -17,7 +17,13 @@ base_dir = os.getcwd() # Get cwd current working directory
 
 class Navigator(BaseNavigator):
     
-    def __init__(self, config:str, oracle_config:str, answering_config:str, map_config: str|dict, show_info:bool=False): 
+    def __init__(self, 
+                 config:str, 
+                 oracle_config:str, 
+                 answering_config:str, 
+                 map_config: str|dict, 
+                 # should be a task_cfg here
+                 show_info: bool=False): 
         
         if isinstance(map_config, dict):
             map_config_data = map_config
@@ -345,8 +351,8 @@ if __name__ == "__main__":
     # navi_config = os.path.join("config", "openai_test_navi_3.json")
     # navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
-    vision_config = "config/human_test_vision.json"
-    map_config = "config/overpass_streetmap_map.json"
+    vision_config = os.path.join("config", "human_test_vision.json")
+    map_config = os.path.join("config", "overpass_streetmap_map.json")
 
     navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, show_info=True)
     task = navigator.forward(('65303689', 0))

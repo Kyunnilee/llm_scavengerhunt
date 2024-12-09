@@ -45,9 +45,20 @@ class Node:
 class Graph:
     def __init__(self):
         self.nodes: Dict[str, Node] = {}
+
+        # used to mark graph edges
+        self.min_lat = float("inf")
+        self.max_lat = float("-inf")
+        self.min_lng = float("inf")
+        self.max_lng = float("-inf")
         
     def add_node(self, panoid, pano_yaw_angle, lat, lng):
         self.nodes[panoid] = Node(panoid, pano_yaw_angle, lat, lng)
+        
+        self.min_lat = min(self.min_lat, lat)
+        self.max_lat = max(self.max_lat, lat)
+        self.min_lng = min(self.min_lng, lng)
+        self.max_lng = max(self.max_lng, lng)
 
     def add_edge(self, start_panoid, end_panoid, heading):
         start_node = self.nodes[start_panoid]
