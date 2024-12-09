@@ -4,6 +4,7 @@ import math
 import heapq
 import config.map_config as config
 
+from typing import *
 from collections import deque
 
 def haversine(coord1, coord2):
@@ -24,10 +25,11 @@ def haversine(coord1, coord2):
 
 class Node:
     def __init__(self, panoid, pano_yaw_angle, lat, lng):
-        self.panoid = panoid
-        self.pano_yaw_angle = pano_yaw_angle
-        self.neighbors = {}
-        self.coordinate = (lat, lng)
+        self.panoid: str = panoid
+        self.pano_yaw_angle: int = pano_yaw_angle
+        # for each node, neighbors: heading -> Node; heading in [-180, 180]
+        self.neighbors: Dict[int, Node] = {}
+        self.coordinate: Tuple[float, float] = (lat, lng)
     
     def __str__(self):
         neighbor_panoids = [node.panoid for node in self.neighbors.values()]
@@ -42,7 +44,7 @@ class Node:
 
 class Graph:
     def __init__(self):
-        self.nodes = {}
+        self.nodes: Dict[str, Node] = {}
         
     def add_node(self, panoid, pano_yaw_angle, lat, lng):
         self.nodes[panoid] = Node(panoid, pano_yaw_angle, lat, lng)
@@ -141,5 +143,6 @@ class GraphLoader:
 
 if __name__ == "__main__":
     g = GraphLoader().construct_graph()
-    path = g.get_path("1243846572", "6910182916")
-    print(path) 
+    # print(g.nodes)
+    # path = g.get_path("1243846572", "6910182916")
+    # print(path) 
