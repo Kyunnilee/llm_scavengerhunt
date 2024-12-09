@@ -1,5 +1,5 @@
 import os
-from graph_loader import GraphLoader
+from graph_loader import GraphLoader, Graph
 
 turn_around_angle_limit = 60
 forward_angle_limit = 90
@@ -13,11 +13,11 @@ LEFT_RIGHT_RANGE = range(int(forward_angle_limit/2), int(180-turn_around_angle_l
 class BaseNavigator:
     def __init__(self, cfg: dict=None):
         if cfg is None:
-            self.graph = GraphLoader().construct_graph()
+            self.graph: Graph = GraphLoader().construct_graph()
         else:
-            self.graph = GraphLoader(cfg).construct_graph()
+            self.graph: Graph = GraphLoader(cfg).construct_graph()
 
-        self.graph_state = None
+        self.graph_state = None # Tuple[curr_panoid, curr_heading]
         self.prev_graph_state = None
 
     def navigate(self):
@@ -66,7 +66,8 @@ class BaseNavigator:
     
     def _check_action_validity(self, curr_state, go_towards):
         '''
-        check [left, right, turn_around] action validity. If there is node in the limit range, return True.
+        check [left, right, turn_around] action validity. 
+        If there is node in the limit range, return True.
         assume forward action is always valid.
         '''
         curr_panoid, curr_heading = curr_state
@@ -177,6 +178,83 @@ class BaseNavigator:
                 
         return available_actions, available_next_states
 
+    def _get_action_between_nodes(self, panoid_from: str, panoid_to: str, 
+                                        curr_heading: int):
+        '''
+        Assumes curr_heading is heading towards some neighbouring node.
+        Assumes that node_from and node_to are NEIGHBOURING
+        Calculates what's the action to go from node_from to node_to.
+        '''
+        neighbor_panoids = [node.panoid for node in \
+                            self.graph.nodes[panoid_from].neighbors.values()]
+        if panoid_to not in neighbor_panoids:
+            raise ValueError(f"Target node {panoid_to} is not neighbour of {panoid_from}.")
+        
+        for neighbor_heading, neighbor_node in self.graph.nodes[panoid_from].neighbors.items():
+            if neighbor_node.panoid == panoid_to:
+                target_heading = neighbor_heading
+
+        # if heading is node_to, return FORWARD
+        if curr_heading == target_heading:
+            return ["forward"]
+
+        # if in left LEFT_RIGHT_RANGE°, return turn_left * N + forward
+        left_func = self._get_diff_func("left")
+        turn_left_angle = left_func(curr_heading=curr_heading, next_heading=target_heading)
+        if turn_left_angle in LEFT_RIGHT_RANGE or turn_left_angle in range(1, int(forward_angle_limit/2)):
+            turn_left_cnt = 1
+            for heading in self.graph.nodes[panoid_from].neighbors.keys():
+                if 0 < left_func(curr_heading=curr_heading, next_heading=heading) < turn_left_angle:
+                    turn_left_cnt += 1
+            return ["left" for _ in range(turn_left_cnt)] + ["forward"]
+
+        # if in right LEFT_RIGHT_RANGE°, return turn_left * N + forward
+        right_func = self._get_diff_func("right")
+        turn_right_angle = right_func(curr_heading=curr_heading, next_heading=target_heading)
+        if turn_right_angle in LEFT_RIGHT_RANGE or turn_right_angle in range(1, int(forward_angle_limit/2)):
+            turn_right_cnt = 1
+            for heading in self.graph.nodes[panoid_from].neighbors.keys():
+                if 0 < right_func(curr_heading=curr_heading, next_heading=heading) < turn_right_angle:
+                    turn_right_cnt += 1
+            return ["right" for _ in range(turn_right_cnt)] + ["forward"]
+
+        # if in left back or right back, turn around first then do the same as above
+        # print(f"before: {curr_heading}")
+        _, curr_heading = self._get_next_graph_state(
+            (panoid_from, curr_heading), "turn_around"
+        )
+        # print("turn around to", curr_heading)
+
+        if curr_heading == target_heading:
+            return ["turn_around", "forward"]
+
+        # if in left 1-90°, return turn_left * N + forward
+        left_func = self._get_diff_func("left")
+        turn_left_angle = left_func(curr_heading=curr_heading, next_heading=target_heading)
+        if turn_left_angle in TURN_AROUND_RANGE:
+            turn_left_cnt = 1
+            for heading in self.graph.nodes[panoid_from].neighbors.keys():
+                if 0 < left_func(curr_heading=curr_heading, next_heading=heading) < turn_left_angle:
+                    turn_left_cnt += 1
+            return ["turn_around"] + \
+                    ["left" for _ in range(turn_left_cnt)] + \
+                    ["forward"]
+
+        # if in right 0-90°, return turn_left * N + forward
+        right_func = self._get_diff_func("right")
+        turn_right_angle = right_func(curr_heading=curr_heading, next_heading=target_heading)
+        if turn_right_angle in TURN_AROUND_RANGE:
+            turn_right_cnt = 1
+            for heading in self.graph.nodes[panoid_from].neighbors.keys():
+                if 0 < right_func(curr_heading=curr_heading, next_heading=heading) < turn_right_angle:
+                    turn_right_cnt += 1
+            return ["turn_around"] + \
+                    ["right" for _ in range(turn_right_cnt)] + \
+                    ["forward"]
+        
+        raise ValueError(f"Cant calculate action from node {panoid_from} to {panoid_to}")
+
+
     def _get_correct_action_sequence(self, node_from, node_to, init_heading):
         """
         Gets action sequence from given path.
@@ -189,6 +267,7 @@ class BaseNavigator:
         """
         # Get the path between nodes
         path = self.graph.get_path(node_from=node_from, node_to=node_to)
+
         if not path:
             raise ValueError(f"No path found between {node_from} and {node_to}.")
 
@@ -222,6 +301,7 @@ class BaseNavigator:
 
             # Calc action based on the heading difference
             diff = int((next_heading - current_heading) % 360)
+            print(f"at node {action_sequence[-1][1]}, diff={diff}")
             if diff in TURN_AROUND_RANGE:
                 action = "turn_around"
             elif diff in LEFT_RIGHT_RANGE:
@@ -232,14 +312,24 @@ class BaseNavigator:
             else:
                 action = "forward"
 
-            # print(f"curr heading: {current_heading}")
-            # print(f"next heading: {next_heading}")
-            # print(f"action: {action}")
-            # print()
-
             action_sequence.append((action, next_node.panoid))
 
         return action_sequence
+
+    def collect_world_state(self):
+        '''
+        Collect all related world states as input of QA agent
+        '''
+
+        # 1. collect correct path from curr to target
+
+        # 2. collect global location of curr and target
+
+        # 3. collect relative location of target (surroundings)
+
+        # 4. collect relative location of curr (surroundings)
+
+
 
     def show_state_info(self, graph_state):
         '''Given a graph state, show current state information and available next moves.'''
@@ -271,7 +361,29 @@ class BaseNavigator:
 
 if __name__ == "__main__":
     test_nav = BaseNavigator()
-    test_path = test_nav._get_correct_action_sequence(
-        node_from="1243846572", node_to="6910182916", init_heading=82
-    )
-    print(test_path) 
+
+    test_panoid_start = "65352337"
+    test_panoid_to = [node.panoid for node in \
+                      test_nav.graph.nodes[test_panoid_start].neighbors.values()]
+    test_panoid_start_heading = list(test_nav.graph.nodes[test_panoid_start].neighbors.keys())
+
+    print(test_panoid_start)
+    print(test_panoid_to)
+    print(test_panoid_start_heading)
+
+    for idx, target in enumerate(test_panoid_to):
+        for heading in test_panoid_start_heading:
+            result = test_nav._get_action_between_nodes(
+                panoid_from=test_panoid_start, 
+                panoid_to=target, 
+                curr_heading=heading
+            )
+            print(f"Config: target={target}, init_heading={heading}, target_heading={test_panoid_start_heading[idx]}")
+            print(f"Result: {result}")
+
+
+
+    # test_path = test_nav._get_correct_action_sequence(
+    #     node_from="6958214919", node_to="370202538", init_heading=82
+    # )
+    # print(test_path) 
