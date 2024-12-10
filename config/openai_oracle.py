@@ -1,6 +1,15 @@
 # -*- coding:utf-8 -*-
 
-model = "gpt-4o-mini"
+mode = "gpt-4o-mini"
+
+# =========== QUESTION FROM ORACLE TO NAVI AGENT ==============
+
+question_to_navi = \
+"""
+What is your question? Just put the question, don't give action this time.
+"""
+
+# ======================== INIT PROMPT ========================
 
 # ======================== INIT PROMPT ========================
 
