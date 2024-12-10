@@ -355,9 +355,26 @@ class BaseNavigator:
             self.graph.nodes[self.graph_state[0]].coordinate, 
             self.graph[self.target_infos[0]["panoid"]].coordinate, 
         )
+        world_states["abs_target_dir"] = self.graph.get_abs_direction(
+            self.graph.nodes[self.target_infos[0]["panoid"]].coordinate
+        )
+        world_states["abs_curr_dir"] = self.graph.get_abs_direction(
+            self.graph.nodes[self.graph_state[0]].coordinate
+        )
 
         # 3. collect relative location of target and curr
-        
+        world_states["rel_target_pos"] = get_rel_direction(
+            curr_coord=self.graph.nodes[self.graph_state[0]].coordinate, 
+            target_coord=self.graph.nodes[self.target_infos[0]["panoid"]].coordinate, 
+            heading=self.graph_state[1], 
+        )
+        world_states["rel_curr_pos"] = get_rel_direction(
+            curr_coord=self.graph.nodes[self.target_infos[0]["panoid"]].coordinate, 
+            target_coord=self.graph.nodes[self.graph_state[0]].coordinate, 
+            heading=self.graph_state[1], 
+        )
+
+        return world_states
 
 
 
