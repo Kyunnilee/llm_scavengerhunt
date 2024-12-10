@@ -14,14 +14,20 @@ def update_config_files():
     new_task_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]   
     return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_oracle_choices), gr.update(value=[], choices=new_map_choices), gr.update(value=[], choices=new_task_choices)
 
-def start_navigation(navi_config, vision_config, oracle_config, map_config):
+def start_navigation(navi_config, vision_config, oracle_config, map_config, task_config):
     navi_config = os.path.join(config_root, navi_config[0]+".json")
     oracle_config = os.path.join(config_root, oracle_config[0]+".json")
     vision_config = os.path.join(config_root, vision_config[0]+".json")
     map_config = os.path.join(config_root, map_config[0]+".json")
+    task_config = os.path.join(config_root, task_config[0]+".json")
     
     global navigator
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config,show_info=False)
+    navigator = Navigator(config=navi_config, 
+                          oracle_config=oracle_config, 
+                          answering_config=vision_config, 
+                          map_config=map_config,
+                          task_config=task_config,
+                          show_info=False)
     
     with open(navi_config, "r") as f:
         navi_config_data = json.load(f)
@@ -30,14 +36,10 @@ def start_navigation(navi_config, vision_config, oracle_config, map_config):
     
     return init_prompt, gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False)
 
-def run_navigation(task_config):
-    
-    with open(os.path.join(config_root, task_config[0]+".json"), "r") as f:
-        task_config_data = json.load(f)
-    start_state = (task_config_data["start_id"], task_config_data["start_heading"])
-    
+def run_navigation():
     global navigator, infos_state
-    task = navigator.forward(start_state)
+
+    task = navigator.forward()
     
     while True:
         info = next(task)
@@ -167,7 +169,9 @@ with gr.Blocks() as demo:
         
     refresh_button.click(fn=update_config_files, inputs=None, outputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection])
     
-    start_button.click(fn=start_navigation, inputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection], outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection, refresh_button]).then(run_navigation, inputs=[task_config_selection], outputs=[total_steps_num])
+    start_button.click(fn=start_navigation, 
+                       inputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection], 
+                       outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection, refresh_button]).then(run_navigation, inputs=None, outputs=[total_steps_num])
     
     last_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(-1)], outputs=[current_step_num])
     next_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(1)], outputs=[current_step_num])

@@ -90,7 +90,8 @@ class Navigator(BaseNavigator):
             
         # self.qa_client = QA_Agent()
         vis_silent = False if show_info else True
-        self.visualization = AgentVisualization(self.graph, self.log_root, silent=vis_silent)
+        target_nodes = [info["panoid"] for info in task_config_data["target_infos"]]
+        self.visualization = AgentVisualization(self.graph, self.log_root, target_nodes=target_nodes, silent=vis_silent)
 
     def get_initial_prompt(self, start_config_file: str): #assuming this is a json config like overpasstask1 
         with open(start_config_file, 'r') as f: 
@@ -259,7 +260,8 @@ class Navigator(BaseNavigator):
         agent_vis_file = self.visualization.update(panoid, candidate_nodeid)
         return agent_vis_file
 
-    def forward(self, start_graph_state): 
+    def forward(self): 
+        start_graph_state = (self.start_node, self.task_config.get("start_heading", 0))
         self.graph_state = start_graph_state
         self.graph_state = self.fix_heading(self.graph_state)
         print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")

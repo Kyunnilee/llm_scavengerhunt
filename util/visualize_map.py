@@ -355,7 +355,7 @@ def visualize_touchdown(folder_path, output_html="network_map.html"):
 #         plt.pause(0.1)
         
 class AgentVisualization():
-    def __init__(self,graph, vis_root, google_api=os.environ.get('GOOGLE_API_KEY'), zoom=19, silent=False):
+    def __init__(self,graph, vis_root, target_nodes, google_api=os.environ.get('GOOGLE_API_KEY'), zoom=19, silent=False):
         self.vis_root = os.path.join(vis_root, "agent_vis")
         os.makedirs(self.vis_root, exist_ok=True)
         
@@ -363,6 +363,7 @@ class AgentVisualization():
         self.current_node = None
         self.visited_nodes = []
         self.candidate_nodes = []
+        self.target_nodes = target_nodes
         self.nodes = {node.panoid: node.coordinate for node in graph.nodes.values()}
         
         # para for api
@@ -386,9 +387,14 @@ class AgentVisualization():
         
         candidate_markers = f"&markers=size:mid|color:green"
         for node in self.candidate_nodes:
+            if node in self.target_nodes: continue
             node_pos = self.nodes[node]
             candidate_markers += f"|{node_pos[0]}, {node_pos[1]}"
-        candidate_markers = candidate_markers[:-1]
+        
+        target_marker = f"&markers=size:mid|color:yellow"
+        for node in self.target_nodes:
+            node_pos = self.nodes[node]
+            target_marker += f"|{node_pos[0]}, {node_pos[1]}"
         
         other_markers = f"&markers=size:tiny|color:blue"
         for node_id, node_pos in self.nodes.items():
@@ -404,7 +410,7 @@ class AgentVisualization():
             visited_path += f"|{node_pos[0]}, {node_pos[1]}"
         visited_path += f"|{current_node_pos[0]}, {current_node_pos[1]}"
             
-        full_url = f"{base_url}?center={current_node_pos[0]}, {current_node_pos[1]}&zoom={self.zoom}&size=640x640&maptype=roadmap{current_marker}{candidate_markers}{other_markers}{visited_path}&key={self.google_api}"
+        full_url = f"{base_url}?center={current_node_pos[0]}, {current_node_pos[1]}&zoom={self.zoom}&size=640x640&maptype=roadmap{current_marker}{target_marker}{candidate_markers}{other_markers}{visited_path}&key={self.google_api}"
 
         response = requests.get(full_url)
         
