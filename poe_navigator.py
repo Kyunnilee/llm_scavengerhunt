@@ -1,15 +1,20 @@
+# -*- coding:utf-8 -*-
+
 from base_navigator import BaseNavigator
-import json
 from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
 from poe_agent import PoeAgent
+from qa_agent import Oracle
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
-import os 
-# import config.map_config as map_config
-import re
-import time
 from util import AgentVisualization
 from external_vision import VisionAnswering
+
+# import config.map_config as map_config
+
+import os 
+import re
+import json
+import time
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 base_dir = os.getcwd() # Get cwd current working directory
@@ -333,22 +338,6 @@ class Navigator(BaseNavigator):
                 self.log_info["over"] = True
                     
             yield self.log_info
-       
-    
-class Oracle: 
-    def __init__(self, oracle_config: dict): 
-        oracle_agent_prompt = oracle_config["prompt"]
-        llm_config = {"config_list": [{"model": "gpt-4o-mini", "api_key": os.environ.get("OPENAI_API_KEY")}]}
-        self.mode = oracle_config["mode"]
-        self.question = oracle_config["question"]
-        # self.mode = "human"
-        #TODO create a new openAI agent here  
-    def get_answer(self, question): 
-        #TODO get answer from the model 
-        if self.mode == "human": 
-            print(f"Question: {question}")
-            answer = input("Enter the answer: ")
-        return answer
         
 def show_graph_info(graph):
     max_neighbors = 0

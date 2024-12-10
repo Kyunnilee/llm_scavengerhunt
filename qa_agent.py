@@ -3,19 +3,49 @@
 import os
 import sys
 
-import config.qa_config as qa_config
+import config.openai_oracle as openai_oracle
 from openai_agent import OpenAIAgent
+
+class Oracle(): 
+    def __init__(self, oracle_config: dict): 
+        # self.mode is gpt model or human
+        # self.question is question sent from QA_Agent to Navi_Agent
+        self.mode = oracle_config["mode"]
+        self.question = oracle_config["question"] 
+
+        if self.mode == "human":
+            pass
+            
+        elif self.mode.startswith("gpt-"):
+            cfg = {
+                "model": oracle_config["mode"], 
+                "policy": openai_oracle.init_prompt
+            }
+            super().__init__(cfg)
+            print(f"Loaded QA Prompts from {qa_agent.__file__}")
+
+        oracle_agent_prompt = oracle_config["prompt"]
+        llm_config = {
+            "config_list": [{
+                "model": "gpt-4o-mini", 
+                "api_key": os.environ.get("OPENAI_API_KEY")
+            }]
+        }
+        
+        print(f"Loaded QA Config from json")
+
+    def get_answer(self, question): 
+        #TODO get answer from the model 
+        if self.mode == "human": 
+            print(f"Question: {question}")
+            answer = input("Enter the answer: ")
+        return answer
 
 class QA_Agent(OpenAIAgent):
     def __init__(self):
-        cfg = {
-            "model": qa_config.model, 
-            "policy": qa_config.init_prompt
-        }
-        super().__init__(cfg)
-
+        
         # add more prompts here that we can call in the following functions
-        self.path_translate_prompts = qa_config.path_translate_prompts
+        self.path_translate_prompts = openai_oracle.path_translate_prompts
 
     def ask(self, question):
         # 1. identify what the question is for 
