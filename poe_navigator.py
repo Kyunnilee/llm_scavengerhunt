@@ -2,13 +2,13 @@ from base_navigator import BaseNavigator
 import json
 from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
-from poe_agent import PoeAgent
+#from poe_agent import PoeAgent
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
 import os 
 # import config.map_config as map_config
 import re
 import time
-from util import AgentVisualization
+#from util import AgentVisualization
 from external_vision import VisionAnswering
 from evaluator import AgentEvaluator
 
@@ -18,7 +18,7 @@ base_dir = os.getcwd() # Get cwd current working directory
 
 class Navigator(BaseNavigator):
     
-    def __init__(self, config:str, oracle_config:str, answering_config:str, map_config: str|dict, show_info:bool=False): 
+    def __init__(self, config:str, oracle_config:str, answering_config:str, map_config: str|dict, eval_config:str, show_info:bool=False): 
         
         if isinstance(map_config, dict):
             map_config_data = map_config
@@ -75,7 +75,7 @@ class Navigator(BaseNavigator):
         elif control_mode == "human":
             self.action_mode = "human"
         
-        self.qa_client = QA_Agent()
+        #self.qa_client = QA_Agent()
 
         # if show_info:
         #     self.visualization = AgentVisualization(self.graph, self.image_root)
@@ -217,7 +217,7 @@ class Navigator(BaseNavigator):
             heading = self.graph_state[1]
             candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
             candidate_nodeid = [node.panoid for node in candidate_nodes]
-            self.visualization.update(current_nodeid, candidate_nodeid)
+            #self.visualization.update(current_nodeid, candidate_nodeid)
     
             # get action/move
             if self.help_message: # is asking for help, previous action is lost
@@ -235,7 +235,9 @@ class Navigator(BaseNavigator):
             agent_response.append(("Context: " + message, "Agent Action: " + action))
             if action == 'stop': 
                 print("Action stop is chosen")
-                self.evaluator.calculate_score(agent_response)
+                with open("sample_response.py", "w") as file:
+                    file.write(f"sample_response = {repr(agent_response)}")
+                print(self.evaluator.calculate_score(agent_response, True))
                 break
             elif action == 'lost':
                 self.help_message = self.ask_for_help(mode=self.action_mode)
@@ -279,14 +281,14 @@ def show_graph_info(graph):
 if __name__ == "__main__":   
 
     # navi_config = r"config\human_test_navi.json"
-    # navi_config = os.path.join("config", "openai_test_navi_3.json")
-    navi_config = r"config\poe_test_navi.json"
+    navi_config = os.path.join("config", "openai_test_navi_3.json")
+    #navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
     map_config = "config/overpass_streetmap_map.json"
     vision_config = os.path.join("config", "human_test_vision.json")
     eval_config = os.path.join("config", "evaluator.json")
 
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, eval_config=eval_config, show_info=True)
+    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, eval_config=eval_config, show_info=True)
     # show_graph_info(navigator.graph)
     # navigator.forward(
     #     start_graph_state=('65287201', 0),
