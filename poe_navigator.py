@@ -278,7 +278,8 @@ class Navigator(BaseNavigator):
         self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
         self.log_info["image_urls"] = self.get_image_feature(self.graph_state, mode=self.action_mode)
         self.log_info["action"] = "start"
-        self.log_info["message"] = ["Start navigation"]
+        self.log_info["message"] = [self.config["policy"]]
+        self.log_info["target_status"] = [info["status"] for info in self.target_infos]
         yield self.log_info
         
         step += 1
@@ -327,6 +328,7 @@ class Navigator(BaseNavigator):
             agent_vis_file = self.get_agent_vis(self.graph_state)
             self.log_info["current_state"] = self.graph_state
             self.log_info["agent_vis"] = agent_vis_file
+            self.log_info["target_status"] = [info["status"] for info in self.target_infos]
                                     
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
