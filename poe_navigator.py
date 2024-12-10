@@ -205,9 +205,10 @@ class Navigator(BaseNavigator):
                 print("="*50)
         elif mode == "human":
             action = input("Enter the move: ")
+            action_message = f"[Action: {action}] is human mode"
         else:
             raise ValueError("Invalid mode")
-        return action
+        return action, action_message
     
     def get_image_feature(self, graph_state, mode="human"):
         '''
@@ -290,18 +291,19 @@ class Navigator(BaseNavigator):
             if self.help_message: # is asking for help, previous action is lost
                 message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
                 self.help_message = None
-                action = self.get_navigation_action([], message, mode=self.action_mode)
+                action, action_message = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
                 self.log_info["image_urls"] = image_urls
                 message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[instruction_ctn])
                 instruction_ctn += 1
-                action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
+                action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
                 
             if 'message' not in self.log_info:
                 self.log_info['message'] = []
             self.log_info["message"].append(message)
             self.log_info["action"] = action
+            self.log_info["action_message"] = action_message
                 
             # if action == 'stop': 
             #     step += 1
