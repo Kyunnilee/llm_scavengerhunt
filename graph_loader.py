@@ -2,7 +2,6 @@ import sys
 import os
 import math
 import heapq
-import config.map_config as config
 
 from typing import *
 from collections import deque

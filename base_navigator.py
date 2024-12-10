@@ -1,6 +1,9 @@
-import os
-from graph_loader import GraphLoader, Graph
+# -*- coding:utf-8 -*-
+
+from graph_loader import *
 from typing import *
+
+import os
 
 turn_around_angle_limit = 60
 forward_angle_limit = 90
@@ -13,15 +16,14 @@ LEFT_RIGHT_RANGE = range(int(forward_angle_limit/2), int(180-turn_around_angle_l
 
 class BaseNavigator:
     def __init__(self, task_config:dict, map_config:dict):
-       
         self.graph: Graph = GraphLoader(map_config).construct_graph()
-
-        self.graph_state = None # Tuple[curr_panoid, curr_heading]
+        self.graph_state: Tuple[str, int] = None # Tuple[curr_panoid, curr_heading]
         self.prev_graph_state = None
         
         self.task_config = task_config
         self.start_node: str = task_config["start_node"]
-        self.target_infos: List[dict] = task_config["target_infos"] # key: panoid, status, ...
+        # Assume we have only one target now, hence len(list)==1
+        self.target_infos: List[Dict[str, str]] = task_config["target_infos"] # key: panoid, status, ...
         for info in self.target_infos:
             info["status"] = False
         self.arrive_threshold: int = task_config["arrive_threshold"]
@@ -301,7 +303,7 @@ class BaseNavigator:
 
             action_list += curr_action_list
         
-        return action_list
+        return action_list, path
     
     def check_arrival(self):
         '''
@@ -337,18 +339,25 @@ class BaseNavigator:
         world_states: Dict[str, Any] = {}
 
         # 1. collect correct path from curr to target
-        world_states["path"] = self._get_correct_action_sequence(
-            node_from=self.graph_state[0], 
-            node_to=None, # TODO: See __init__
-            init_heading=self.graph_state[1], 
-        )
+        #    *Assume we have only one target now
+        world_states["path_action"], world_states["path_nodes"] = \
+            self._get_correct_action_sequence(
+                node_from=self.graph_state[0], 
+                node_to=self.target_infos[0]["panoid"], 
+                init_heading=self.graph_state[1], 
+            )
+        world_states["path_len"] = len(world_states["path_nodes"])
 
         # 2. collect global location of curr and target
+        world_states["abs_curr_pos"] = self.graph.nodes[self.graph_state[0]].coordinate
+        world_states["abs_target_pos"] = self.graph.nodes[self.target_infos[0]["panoid"]].coordinate
+        world_states["abs_euclidean_dist"] = haversine(
+            self.graph.nodes[self.graph_state[0]].coordinate, 
+            self.graph[self.target_infos[0]["panoid"]].coordinate, 
+        )
 
-
-        # 3. collect relative location of target (surroundings)
-
-        # 4. collect relative location of curr (surroundings)
+        # 3. collect relative location of target and curr
+        
 
 
 
