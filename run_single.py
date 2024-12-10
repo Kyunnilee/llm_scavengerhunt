@@ -33,8 +33,17 @@ def start_navigation(navi_config, vision_config, oracle_config, map_config, task
         navi_config_data = json.load(f)
     init_prompt = navi_config_data["policy"]
     
+    with open(task_config, "r") as f:
+        task_config_data = json.load(f)
+    target_infos = task_config_data["target_infos"]
+    target1_update = gr.update(visible=True, label=target_infos[0]["name"]) if 0<len(target_infos) else gr.skip()
+    target2_update = gr.update(visible=True, label=target_infos[1]["name"]) if 1<len(target_infos) else gr.skip()
+    target3_update = gr.update(visible=True, label=target_infos[2]["name"]) if 2<len(target_infos) else gr.skip()
+    target4_update = gr.update(visible=True, label=target_infos[3]["name"]) if 3<len(target_infos) else gr.skip()
+        
     
-    return init_prompt, gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False)
+    
+    return init_prompt, gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False), target1_update, target2_update, target3_update, target4_update
 
 def run_navigation():
     global navigator, infos_state
@@ -51,11 +60,10 @@ def run_navigation():
         else:
             infos_state[step] = info
     
-        action = info["action"]
         yield step
-        if action == "stop":
+        if info.get("over", False):
             break
-    return step
+    
     
 def step_button_click(current_step, step_change):
     new_current_step = current_step + step_change
@@ -91,7 +99,14 @@ def update_current_step(current_step):
             qa_messages.append(dict(role="assistant", content=answer[i]))
     else:
         qa_messages = gr.skip()
-    return qa_messages, panoid, heading, message, action, log_root, agent_vis_path, vision_input_images
+        
+    target_status = info["target_status"]
+    target1_update = gr.update(value=target_status[0]) if 0<len(target_status) else gr.skip()    
+    target2_update = gr.update(value=target_status[1]) if 1<len(target_status) else gr.skip()
+    target3_update = gr.update(value=target_status[2]) if 2<len(target_status) else gr.skip()
+    target4_update = gr.update(value=target_status[3]) if 3<len(target_status) else gr.skip()
+    
+    return qa_messages, panoid, heading, message, action, log_root, agent_vis_path, vision_input_images, target1_update, target2_update, target3_update, target4_update
 
 config_root = "config"
 navigator = None
@@ -136,6 +151,11 @@ qa_chatbot = gr.Chatbot(type="messages", label="QA System")
 agent_vis_image = gr.Image(label="Agent Visualization", interactive=False)
 vision_input_images = gr.Gallery(label="Vision Input", show_label=True, columns=5, rows=1, height="auto", interactive=False)
 
+target1_checkbox = gr.Checkbox(label="Target 1", visible=False)
+target2_checkbox = gr.Checkbox(label="Target 2", visible=False)
+target3_checkbox = gr.Checkbox(label="Target 3", visible=False)
+target4_checkbox = gr.Checkbox(label="Target 4", visible=False)
+
 with gr.Blocks() as demo:
     with gr.Row(equal_height=True):
         navi_config_selection.render()
@@ -148,6 +168,11 @@ with gr.Blocks() as demo:
         start_button.render()
         total_steps_num.render()
         current_step_num.render()
+    with gr.Row():
+        target1_checkbox.render()
+        target2_checkbox.render()
+        target3_checkbox.render()
+        target4_checkbox.render()
     with gr.Row():
         with gr.Column(scale=1):
             position_text.render()
@@ -171,12 +196,12 @@ with gr.Blocks() as demo:
     
     start_button.click(fn=start_navigation, 
                        inputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection], 
-                       outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection, refresh_button]).then(run_navigation, inputs=None, outputs=[total_steps_num])
+                       outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection, refresh_button, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox]).then(run_navigation, inputs=None, outputs=[total_steps_num])
     
     last_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(-1)], outputs=[current_step_num])
     next_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(1)], outputs=[current_step_num])
        
-    current_step_num.change(fn=update_current_step, inputs=[current_step_num], outputs=[qa_chatbot, position_text, heading_text, step_prompt_text, action_text, log_root_text, agent_vis_image, vision_input_images])
+    current_step_num.change(fn=update_current_step, inputs=[current_step_num], outputs=[qa_chatbot, position_text, heading_text, step_prompt_text, action_text, log_root_text, agent_vis_image, vision_input_images, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox])
 
 if __name__ == "__main__":
     demo.launch()

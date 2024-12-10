@@ -205,9 +205,10 @@ class Navigator(BaseNavigator):
                 print("="*50)
         elif mode == "human":
             action = input("Enter the move: ")
+            action_message = f"[Action: {action}] is human mode"
         else:
             raise ValueError("Invalid mode")
-        return action
+        return action, action_message
     
     def get_image_feature(self, graph_state, mode="human"):
         '''
@@ -277,36 +278,39 @@ class Navigator(BaseNavigator):
         self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
         self.log_info["image_urls"] = self.get_image_feature(self.graph_state, mode=self.action_mode)
         self.log_info["action"] = "start"
-        self.log_info["message"] = ["Start navigation"]
+        self.log_info["message"] = [self.config["policy"]]
+        self.log_info["target_status"] = [info["status"] for info in self.target_infos]
         yield self.log_info
         
         step += 1
         while True:     
             if step > self.log_info['step']: # new state, reset log_info
                 self.log_infos.append(self.log_info)
-                self.log_info = {'step': step, 'log_root': self.log_root}
+                self.log_info = {'step': step, 'log_root': self.log_root, 'image_urls': self.log_info['image_urls']}
             
             # get action/move
             if self.help_message: # is asking for help, previous action is lost
                 message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
                 self.help_message = None
-                action = self.get_navigation_action([], message, mode=self.action_mode)
+                action, action_message = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
                 self.log_info["image_urls"] = image_urls
                 message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[instruction_ctn])
                 instruction_ctn += 1
-                action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
+                action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
                 
             if 'message' not in self.log_info:
                 self.log_info['message'] = []
             self.log_info["message"].append(message)
             self.log_info["action"] = action
+            self.log_info["action_message"] = action_message
                 
-            if action == 'stop': 
-                step += 1
-                print("Action stop is chosen")
-            elif action == 'lost':
+            # if action == 'stop': 
+            #     step += 1
+            #     print("Action stop is chosen")
+            # elif action == 'lost':
+            if action == 'lost':
                 if 'qa_messages' not in self.log_info:
                     self.log_info['qa_messages'] = {'question': [], 'answer': []}
                 self.log_info['qa_messages']['question'].append('lost')
@@ -317,19 +321,25 @@ class Navigator(BaseNavigator):
                 err_message = self.step(action)
                 if err_message != '':  # if has err, pass err message as help message
                     self.help_message = err_message
+                    self.help_message += "\n"
+                    self.help_message += self.log_info["message"][0] # instruction message
                     
             # update visualization
             agent_vis_file = self.get_agent_vis(self.graph_state)
             self.log_info["current_state"] = self.graph_state
             self.log_info["agent_vis"] = agent_vis_file
+            self.log_info["target_status"] = [info["status"] for info in self.target_infos]
                                     
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
                 
-            if action == 'stop':
+            if action == 'stop' and self.check_arrival_all():
+                
                 self.log_infos.append(self.log_info)
                 with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
                     json.dump(self.log_infos, f)    
+                    
+                self.log_info["over"] = True
                     
             yield self.log_info
         
@@ -366,9 +376,8 @@ if __name__ == "__main__":
         info = next(task)
         print(info)
         action = info["action"]
-        if action == "stop":
+        if info.get("over", False):
             break
-    
     
 
         
