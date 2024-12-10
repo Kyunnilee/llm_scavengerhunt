@@ -22,7 +22,8 @@ class Oracle():
         # self.question is question sent from QA_Agent to Navi_Agent
         self.model = openai_oracle.model
         self.question = openai_oracle.question_to_navi
-        self.agent = None
+        self.qa_agent = None
+        self.eval_agent = None
 
         self.latest_world_states = None
         self.latest_clues = None
@@ -31,11 +32,17 @@ class Oracle():
             pass
             
         elif self.model.startswith("gpt-"):
-            cfg = {
+            cfg_qa = {
                 "model": openai_oracle.model, 
-                "policy": openai_oracle.init_prompt
+                "policy": openai_oracle.qa_init_prompt
             }
-            self.agent = OpenAIAgent(cfg)
+            self.qa_agent = OpenAIAgent(cfg_qa)
+
+            cfg_eval = {
+                "model": openai_oracle.model, 
+                "policy": openai_oracle.eval_init_prompt
+            }
+            self.eval_agent = OpenAIAgent(cfg_eval)
             print(f"Loaded QA Prompts from {qa_agent.__file__}")
 
     def update_observations(self, world_states, clues):
@@ -56,13 +63,54 @@ class Oracle():
             answer = input("Enter the answer: ")
         
         elif self.model.startswith("gpt-"):
-            pass
+            question_detail_level = self._eval_question(question)
+            if question_detail_level is None:
+                path_description = "Not provided for this question"
+            else:
+                path_description = self._translate_path(
+                    path=self.latest_world_states["path_action"], 
+                    detail_level=question_detail_level
+                )
+            
+            qa_prompt = openai_oracle.qa_final_prompt
+
+            qa_prompt.replace("<<<abs_target_pos>>>", self.latest_world_states["abs_target_pos"])
+            qa_prompt.replace("<<<abs_target_dir>>>", self.latest_world_states["abs_target_dir"])
+            qa_prompt.replace("<<<abs_curr_pos>>>", self.latest_world_states["abs_curr_pos"])
+            qa_prompt.replace("<<<abs_curr_dir>>>", self.latest_world_states["abs_curr_dir"])
+            qa_prompt.replace("<<<abs_euclidean_dist>>>", self.latest_world_states["abs_euclidean_dist"])
+            qa_prompt.replace("<<<rel_target_pos>>>", self.latest_world_states["rel_target_pos"])
+            qa_prompt.replace("<<<rel_curr_pos>>>", self.latest_world_states["rel_curr_pos"])
+            qa_prompt.replace("<<<path_description>>>", path_description)
+            qa_prompt.replace("<<<Testing_Agent_Question>>>", question)
+
+            answer = self.qa_agent.send_message(qa_prompt)
 
         return answer
 
-    def _translate_path(self, path: list[str]):
-        input_message = "Turn this path into human-friendly navigation text.\n"
-        input_message += "".join(path)
+    def _eval_question(self, question):
+        eval_prompt = openai_oracle.eval_final_prompt
+        eval_prompt.replace("<<<evaled_question>>>", question)
+        answer = self.eval_agent.send_message(eval_prompt)
+
+        if "Irrelevant" in answer:
+            return None
+        else:
+            return int(answer.split("\n")[1])
+
+    def _translate_path(self, path: list[str], detail_level: int):
+        """
+        Assumes detail_level: int in [1, 3], valid levels.
+        Returns translated path (from list[str] to human friendly text)
+        """
+        input_message = openai_oracle.path_translate_prompts[detail_level]
+        if detail_level == 1:
+            input_message = input_message.replace("<<<rel_target_pos>>>", self.latest_world_states["rel_target_pos"])
+        elif detail_level in [2, 3]:
+            path = list(map(lambda x: "Action: " + x, path))
+            path_text = "\n".join(path)
+            input_message = input_message.replace("<<<path_action>>>", path_text)
+
         text_navigation = self.send_message(input_message)
         return text_navigation
 
@@ -70,17 +118,3 @@ class Oracle():
 if __name__ == "__main__":
     qa_agent = Oracle()
 
-    correct_path = [
-        "At: Deleware Street; Go: Forward\n", 
-        "Go: Forward\n", 
-        "Go: Forward\n", 
-        "Go: Forward\n", 
-        "At: Deleware Street; Turn: Left;\n", 
-        "At: Deleware Street; Turn: Left;\n", 
-        "At: Deleware Street; Turn: Left;\n", 
-        "Go: Forward; At: Virginia Street\n", 
-        "Go: Forward\n", 
-        "Stop.", 
-    ]
-    ans = qa_agent.translate_path(correct_path)
-    print(ans)

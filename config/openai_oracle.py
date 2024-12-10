@@ -4,7 +4,7 @@ model = "gpt-4o-mini"
 
 # ======================== INIT PROMPT ========================
 
-init_prompt = \
+qa_init_prompt = \
 """You are a helpful agent specialized in answering navigation-related questions within a game.
 
 In this game, there is a testing agent (not you) who may ask for guidance if he gets lost. 
@@ -18,7 +18,7 @@ This will help the testing agent feel comfortable and confident while navigating
 
 # =========== QUESTION FROM ORACLE TO NAVI AGENT ==============
 
-question_to_navi = \
+qa_question_to_navi = \
 """What is your question? 
 Just tell me your question, don't give action this time.
 """
@@ -26,7 +26,7 @@ Just tell me your question, don't give action this time.
 # ===================== WORLD STATE PROMPT ====================
 
 # Note that the arguments in <<<>>> will be replaced in qa_agent by real arguments.
-world_state_prompt = init_prompt + \
+qa_final_prompt = qa_init_prompt + \
 """Now the game has begun, and the testing agent DO GETS LOST.
 Here is the world states provided. Please generate a proper answer to the testing agent.
 
@@ -42,7 +42,7 @@ The distance from current location to target location is <<<abs_euclidean_dist>>
 The relative position of the target to the current location is: <<<rel_target_pos>>>
 The relative position of the current position to the target is: <<<rel_curr_pos>>>
 
-The path from current location to target location is: <<<text_path>>>
+The path from current location to target location is: <<<path_description>>>
 [World States Ends]
 
 [Question from the Testing Agent: ]
@@ -51,8 +51,10 @@ The path from current location to target location is: <<<text_path>>>
 
 # ============ HELPER: QUESTION EVALUATION PROMPT =============
 
-question_eval_prompt = \
-"""You are tasked with evaluating the quality of a navigation question. The question will ask how to get from point A to point B on a map. Your goal is to assess how specific and clear the question is. Consider the following criteria:
+eval_init_prompt = \
+"""You are tasked with evaluating the quality of a navigation question. 
+The question may ask how to get from point A to point B on a map. If it is not about the path from point A to point B on the map, directly output "Irrelevant" and end your answer.
+If it IS a question about the path from point A to point B on a map, your goal is to assess how specific and clear the question is. Consider the following criteria:
 
 Clarity: Does the question clearly describe the locations of point A and point B? Are any important landmarks or details mentioned?
 Specificity: Does the question provide enough detail to make the answer actionable? For example, does it ask about specific directions (e.g., turn left, move forward a certain number of steps) or provide relevant context (e.g., intersections, landmarks)?
@@ -80,6 +82,11 @@ Final Evaluation: After reviewing the question, assign a score based on the scal
 3. Poor = 1
 
 Please provide your justifying reasons in the first line, followed by a single score (1-3) on the second line.
+"""
+
+eval_final_prompt = eval_init_prompt + \
+"""Here is the question to be evaled: 
+"<<<evaled_question>>>"
 """
 
 # ============= HELPER: PATH TRANSLATING PROMPT ===============
