@@ -279,7 +279,7 @@ class Navigator(BaseNavigator):
         while True:     
             if step > self.log_info['step']: # new state, reset log_info
                 self.log_infos.append(self.log_info)
-                self.log_info = {'step': step, 'log_root': self.log_root}
+                self.log_info = {'step': step, 'log_root': self.log_root, 'image_urls': self.log_info['image_urls']}
             
             # get action/move
             if self.help_message: # is asking for help, previous action is lost
@@ -298,10 +298,11 @@ class Navigator(BaseNavigator):
             self.log_info["message"].append(message)
             self.log_info["action"] = action
                 
-            if action == 'stop': 
-                step += 1
-                print("Action stop is chosen")
-            elif action == 'lost':
+            # if action == 'stop': 
+            #     step += 1
+            #     print("Action stop is chosen")
+            # elif action == 'lost':
+            if action == 'lost':
                 if 'qa_messages' not in self.log_info:
                     self.log_info['qa_messages'] = {'question': [], 'answer': []}
                 self.log_info['qa_messages']['question'].append('lost')
@@ -312,6 +313,8 @@ class Navigator(BaseNavigator):
                 err_message = self.step(action)
                 if err_message != '':  # if has err, pass err message as help message
                     self.help_message = err_message
+                    self.help_message += "\n"
+                    self.help_message += self.log_info["message"][0] # instruction message
                     
             # update visualization
             agent_vis_file = self.get_agent_vis(self.graph_state)
@@ -321,12 +324,16 @@ class Navigator(BaseNavigator):
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
                 
-            if action == 'stop':
+            if action == 'stop' and self.check_arrival_all():
+                
                 self.log_infos.append(self.log_info)
                 with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
                     json.dump(self.log_infos, f)    
                     
+                self.log_info["over"] = True
+                    
             yield self.log_info
+       
     
 class Oracle: 
     def __init__(self, oracle_config: dict): 
@@ -376,9 +383,8 @@ if __name__ == "__main__":
         info = next(task)
         print(info)
         action = info["action"]
-        if action == "stop":
+        if info.get("over", False):
             break
-    
     
 
         

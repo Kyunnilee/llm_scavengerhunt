@@ -44,21 +44,30 @@ class BaseNavigator:
     def navigate(self):
         raise NotImplementedError
 
-    def step(self, go_towards):
+    def step(self, action):
         '''
         Execute one step and update the state. 
-        go_towards: ['forward', 'left', 'right', 'turn_around']
+        go_towards: ['forward', 'left', 'right', 'turn_around', 'stop']
         '''
-        available_actions, _ = self.get_available_next_moves(self.graph_state)
-        if go_towards not in available_actions:
-            # print(f'Invalid action: {go_towards}.')
-            return f'Invalid action: {go_towards}.'
+        if action == 'stop':
+            arrive, info = self.check_arrival()
+            if arrive:
+                return f'Arrived at target {info["name"]}, place: {info["panoid"]}.'
+            else:
+                return 'Not arrived yet.'
         
-        next_panoid, next_heading = self._get_next_graph_state(self.graph_state, go_towards)
+        
+        
+        available_actions, _ = self.get_available_next_moves(self.graph_state)
+        if action not in available_actions:
+            # print(f'Invalid action: {go_towards}.')
+            return f'Invalid action: {action}.'
+        
+        next_panoid, next_heading = self._get_next_graph_state(self.graph_state, action)
         if len(self.graph.nodes[next_panoid].neighbors) < 2:
             # stay still when running into the boundary of the graph
             # print(f'At the border (number of neighbors < 2). Did not go "{go_towards}".')
-            return f'At the border (number of neighbors < 2). Did not go "{go_towards}".'
+            return f'At the border (number of neighbors < 2). Did not go "{action}".'
         self.prev_graph_state = self.graph_state
         self.graph_state = (next_panoid, next_heading)
         return ""

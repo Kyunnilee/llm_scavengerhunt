@@ -53,9 +53,9 @@ def run_navigation():
     
         action = info["action"]
         yield step
-        if action == "stop":
+        if info.get("over", False):
             break
-    return step
+    
     
 def step_button_click(current_step, step_change):
     new_current_step = current_step + step_change
