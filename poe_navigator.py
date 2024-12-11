@@ -251,7 +251,12 @@ class Navigator(BaseNavigator):
         self.log_info["qa_messages"]['question'].append(question)
        
         # get answer from QA agent
+        self.oracle.update_observations(
+            world_states=self.collect_world_state(), 
+            clues=None
+        )
         help_message = self.oracle.get_answer(question)
+        print(f"The result of help message is: {help_message}")
         return help_message
     
     def get_agent_vis(self, graph_state):
@@ -371,7 +376,7 @@ if __name__ == "__main__":
                           map_config=map_config, 
                           task_config=task_config,
                           show_info=True)
-    task = navigator.forward(('65303689', 0))
+    task = navigator.forward()
     while True:
         info = next(task)
         print(info)

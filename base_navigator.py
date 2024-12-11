@@ -347,44 +347,41 @@ class BaseNavigator:
         '''
         world_states: Dict[str, Any] = {}
 
+        curr_panoid, curr_heading = self.graph_state
+        target_panoid = self.target_infos[0]["panoid"]  
+        curr_coord = self.graph.nodes[curr_panoid].coordinate
+        target_coord = self.graph.nodes[target_panoid].coordinate
+
         # 1. collect correct path from curr to target
         #    *Assume we have only one target now
         world_states["path_action"], world_states["path_nodes"] = \
             self._get_correct_action_sequence(
-                node_from=self.graph_state[0], 
-                node_to=self.target_infos[0]["panoid"], 
-                init_heading=self.graph_state[1], 
+                node_from=curr_panoid, 
+                node_to=target_panoid, 
+                init_heading=curr_heading, 
             )
         world_states["path_len"] = len(world_states["path_nodes"])
 
         # 2. collect global location of curr and target
-        world_states["abs_curr_pos"] = self.graph.nodes[self.graph_state[0]].coordinate
-        world_states["abs_target_pos"] = self.graph.nodes[self.target_infos[0]["panoid"]].coordinate
-        world_states["abs_euclidean_dist"] = haversine(
-            self.graph.nodes[self.graph_state[0]].coordinate, 
-            self.graph[self.target_infos[0]["panoid"]].coordinate, 
-        )
-        world_states["abs_target_dir"] = self.graph.get_abs_direction(
-            self.graph.nodes[self.target_infos[0]["panoid"]].coordinate
-        )
-        world_states["abs_curr_dir"] = self.graph.get_abs_direction(
-            self.graph.nodes[self.graph_state[0]].coordinate
-        )
+        world_states["abs_curr_pos"] = curr_coord
+        world_states["abs_target_pos"] = target_coord
+        world_states["abs_euclidean_dist"] = haversine(curr_coord, target_coord)
+        world_states["abs_curr_dir"] = self.graph.get_abs_direction(curr_coord)
+        world_states["abs_target_dir"] = self.graph.get_abs_direction(target_coord)
 
         # 3. collect relative location of target and curr
         world_states["rel_target_pos"] = get_rel_direction(
-            curr_coord=self.graph.nodes[self.graph_state[0]].coordinate, 
-            target_coord=self.graph.nodes[self.target_infos[0]["panoid"]].coordinate, 
-            heading=self.graph_state[1], 
+            curr_coord=curr_coord, 
+            target_coord=target_coord, 
+            heading=curr_heading, 
         )
         world_states["rel_curr_pos"] = get_rel_direction(
-            curr_coord=self.graph.nodes[self.target_infos[0]["panoid"]].coordinate, 
-            target_coord=self.graph.nodes[self.graph_state[0]].coordinate, 
-            heading=self.graph_state[1], 
+            curr_coord=target_coord, 
+            target_coord=curr_coord, 
+            heading=curr_heading, 
         )
 
         return world_states
-
 
 
     def show_state_info(self, graph_state):
