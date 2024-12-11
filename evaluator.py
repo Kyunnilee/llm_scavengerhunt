@@ -12,7 +12,7 @@ class AgentEvaluator:
         self.model = config['model']
 
     
-    def evaluate_misc(self, total_response, shortest_step):
+    def evaluate_misc(self, total_response, shortest_step, current_pos, target_pos):
         '''
         Evaluate the number of questions asked (int), number of steps took to reach destination (int), and whether the agent finished (bool)
 
@@ -21,7 +21,7 @@ class AgentEvaluator:
         # total_response = list of "Context message and action message string" 
         num_steps = 0 # num of Forwards
         eval_num_questions, eval_num_steps = 0, 0 # evaluated benchmark value of # questions and 3 steps taken
-        eval_finished = False # evaluated benchmark value whether the agent reached the goal or not
+        eval_finished = current_pos == target_pos # evaluated benchmark value whether the agent reached the goal or not
 
         num_steps = len([pair for pair in total_response if "forward" in pair[1]])
         eval_num_questions = len([pair for pair in total_response if "lost" in pair[1]]) / num_steps 
@@ -55,8 +55,10 @@ class AgentEvaluator:
         print(type(result))
         return result
 
-    def calculate_score(self, total_response, shortest_step, debug=False):
-        num_questions, num_steps, finished = self.evaluate_misc(total_response, shortest_step)
+    def calculate_score(self, total_response, shortest_step, world_states, debug=False):
+        current_pos = world_states["abs_curr_pos"]
+        target_pos = world_states["abs_target_pos"]
+        num_questions, num_steps, finished = self.evaluate_misc(total_response, shortest_step, current_pos, target_pos)
         (action_score, justification_action), (question_score, justification_question) = self.evaluate_response(total_response)
 
         if debug:
@@ -64,6 +66,8 @@ class AgentEvaluator:
             print("Action Justification: ", justification_action)
             print("Question Score: ", question_score)
             print("Question Justification: ", justification_question)
+            print(f"num_questions: {num_questions}, num_steps: {num_steps}, finished: {finished}")
+
 
         # Current implementation does not use for loops, should change to this if the prompt size becomes too big
         # for response in agent_lost:

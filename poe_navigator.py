@@ -302,6 +302,10 @@ class Navigator(BaseNavigator):
         yield self.log_info
         
         step += 1
+        agent_response = []
+        world_states = self.collect_world_state()
+        shortest_path = world_states["path_len"]
+        
         while True:     
             if step > self.log_info['step']: # new state, reset log_info
                 self.log_infos.append(self.log_info)
@@ -315,10 +319,12 @@ class Navigator(BaseNavigator):
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
                 self.log_info["image_urls"] = image_urls
-                message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[instruction_ctn])
+                message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_2) else NAVIGATION_LVL_2[instruction_ctn])
                 instruction_ctn += 1
                 action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
-                
+            
+            agent_response.append(("Context: " + message, "Agent Action: " + action_message))
+
             if 'message' not in self.log_info:
                 self.log_info['message'] = []
             self.log_info["message"].append(message)
@@ -359,6 +365,9 @@ class Navigator(BaseNavigator):
                     json.dump(self.log_infos, f)    
                     
                 self.log_info["over"] = True
+                world_states = self.collect_world_state()
+                
+                self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, world_states=world_states, debug=True)
                     
             yield self.log_info
         
@@ -376,8 +385,8 @@ def show_graph_info(graph):
 
 if __name__ == "__main__":   
 
-    # navi_config = r"config\human_test_navi.json"
-    navi_config = os.path.join("config", "openai_test_navi_3.json")
+    navi_config = r"config\human_test_navi.json"
+    #navi_config = os.path.join("config", "openai_test_navi_3.json")
     #navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
     map_config = "config/overpass_streetmap_map.json"
@@ -385,29 +394,30 @@ if __name__ == "__main__":
     eval_config = os.path.join("config", "evaluator.json")
     task_config = os.path.join("config", "overpass_task1.json")
 
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, eval_config=eval_config, task_config=task_config, show_info=True)
+    #navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, eval_config=eval_config, task_config=task_config, show_info=True)
     # show_graph_info(navigator.graph)
     # navigator.forward(
     #     start_graph_state=('65287201', 0),
     # )
-    navigator.forward(
-        start_graph_state=('4018889690', 0),
-    )
+    # navigator.forward(
+    #     start_graph_state=('4018889690', 0),
+    # )
 
 
-    # navigator = Navigator(config=navi_config, 
-    #                       oracle_config=oracle_config, 
-    #                       answering_config=vision_config, 
-    #                       map_config=map_config, 
-    #                       task_config=task_config,
-    #                       show_info=True)
-    # task = navigator.forward()
-    # while True:
-    #     info = next(task)
-    #     print(info)
-    #     action = info["action"]
-    #     if info.get("over", False):
-    #         break
+    navigator = Navigator(config=navi_config, 
+                          oracle_config=oracle_config, 
+                          answering_config=vision_config, 
+                          map_config=map_config,
+                          eval_config=eval_config, 
+                          task_config=task_config,
+                          show_info=True) 
+    task = navigator.forward()
+    while True:
+        info = next(task)
+        print(info)
+        action = info["action"]
+        if info.get("over", False):
+            break
     
 
         
