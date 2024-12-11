@@ -51,9 +51,7 @@ class Navigator(BaseNavigator):
             self.config = json.load(f)
 
         print(f"[init]Loading oracle config from {oracle_config}")
-        with open(oracle_config, 'r') as f:
-            oracle_config_data = json.load(f)
-            self.oracle = Oracle(oracle_config_data)
+        self.oracle = Oracle()
         
         print(f"[init]Loading vision config from {answering_config}")
         with open(answering_config, 'r') as f: 
