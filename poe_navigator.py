@@ -362,8 +362,8 @@ def show_graph_info(graph):
 
 if __name__ == "__main__":   
 
-    navi_config = r"config\human_test_navi.json"
-    # navi_config = os.path.join("config", "openai_test_navi_3.json")
+    #navi_config = r"config\human_test_navi.json"
+    navi_config = os.path.join("config", "openai_test_navi_3.json")
     # navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
     vision_config = os.path.join("config", "human_test_vision.json")
