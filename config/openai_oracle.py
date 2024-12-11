@@ -53,7 +53,7 @@ The path from current location to target location is: <<<path_description>>>
 
 eval_init_prompt = \
 """You are tasked with evaluating the quality of a navigation question. 
-The question may ask how to get from point A to point B on a map. If it is not about the path from point A to point B on the map, directly output "Irrelevant" and end your answer.
+The question may ask how to get from point A to point B on a map, or, from his current location to target. If it is not about the path from point A to point B on the map, directly output "Irrelevant" and end your answer.
 If it IS a question about the path from point A to point B on a map, your goal is to assess how specific and clear the question is. Consider the following criteria:
 
 Clarity: Does the question clearly describe the locations of point A and point B? Are any important landmarks or details mentioned?
@@ -91,6 +91,11 @@ eval_final_prompt = eval_init_prompt + \
 
 # ============= HELPER: PATH TRANSLATING PROMPT ===============
 
+path_translate_init_prompt = \
+"""You are a helpful assistant specializing in translating structured geographical descriptions into clear, natural, and human-friendly language.
+Each round of dialogue may introduce specific rules or constraints for your translations. Always adhere closely to the rules provided in the current dialogue.
+"""
+
 path_translate_prompts = {
     "level_1": "", 
     "level_2": "", 
@@ -98,7 +103,8 @@ path_translate_prompts = {
 }
 
 path_translate_prompts["level_1"] = \
-"""You should translate a relative direction to a very general path.
+"""Please translate a relative direction to a very general path.
+Please consider the following rules:
 Here is an example:
 
 Our input:
@@ -115,7 +121,8 @@ Please provide the desired output.
 
 path_translate_prompts["level_2"] = \
 """
-You should translate sequence of actions [Forward, Left, Right, Turn_Around] into human-friendly navigation text. 
+Please translate sequence of actions [Forward, Left, Right, Turn_Around] into human-friendly navigation text. 
+Please consider the following rules:
 You are eager to make the text short and simplified.
 Specifically, there will be a graph consisted of nodes and edges. A game player can move along that graph, using options [Forward, Left, Right, Turn_Around]. 
 When that player calls "Forward", he will move forward by one node.
@@ -145,7 +152,9 @@ Please provide the desired output.
 """
 
 path_translate_prompts["level_3"] = \
-"""You should translate sequence of actions [Forward, Left, Right, Turn_Around] into human-friendly navigation text. You are eager to make the text detailed and clear.
+"""Please translate sequence of actions [Forward, Left, Right, Turn_Around] into human-friendly navigation text. 
+Please consider the following rules:
+You are eager to make the text detailed and clear.
 Specifically, there will be a graph consisted of nodes and edges. A game player can move along that graph, using options [Forward, Left, Right, Turn_Around]. 
 When that player calls "Forward", he will move forward by one node.
 When that player calls "Right", "Left" or "Turn_Around", he will change his looking-at direction and sticks to his original position.
