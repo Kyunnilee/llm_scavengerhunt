@@ -1,4 +1,5 @@
 from openai import OpenAI
+
 class OpenAIAgent:
     def __init__(self, cfg):
         self.client = OpenAI()

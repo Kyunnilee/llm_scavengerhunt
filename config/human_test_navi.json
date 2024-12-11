@@ -1,4 +1,5 @@
 {
     "mode": "human",
-    "vision_mode": "url"
+    "vision_mode": "url",
+    "policy": "human mode"
 }

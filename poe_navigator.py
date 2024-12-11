@@ -1,16 +1,22 @@
+# -*- coding:utf-8 -*-
+
 from base_navigator import BaseNavigator
-import json
 from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
-#from poe_agent import PoeAgent
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
-import os 
-# import config.map_config as map_config
-import re
-import time
-#from util import AgentVisualization
+from poe_agent import PoeAgent
+from qa_agent import Oracle
+
+from util import AgentVisualization
 from external_vision import VisionAnswering
 from evaluator import AgentEvaluator
+
+# import config.map_config as map_config
+
+import os 
+import re
+import json
+import time
 
 api_key = os.environ.get('GOOGLE_API_KEY')
 base_dir = os.getcwd() # Get cwd current working directory
@@ -18,25 +24,30 @@ base_dir = os.getcwd() # Get cwd current working directory
 
 class Navigator(BaseNavigator):
     
-    def __init__(self, config:str, oracle_config:str, answering_config:str, map_config: str|dict, eval_config:str, show_info:bool=False): 
+    def __init__(self, 
+                 config:str, 
+                 oracle_config:str, 
+                 answering_config:str, 
+                 map_config: str|dict,
+                 eval_config:str, 
+                 task_config: str|dict,
+                 show_info: bool=False): 
         
         if isinstance(map_config, dict):
             map_config_data = map_config
         elif isinstance(map_config, str):
+            print(f"[init]Loading map config from {map_config}")
             with open(map_config, 'r') as f:
                 map_config_data = json.load(f)
                 
-        super().__init__(map_config_data)
-
-        if 'log_root' in map_config_data: # legacy
-            self.log_root = map_config_data['log_root']
-        else:
-            log_dir_name = f"{time.strftime('%Y%m%d-%H%M%S')}_logs"
-            self.log_root = os.path.join('output', 'logs', log_dir_name)
-        os.makedirs(self.log_root, exist_ok=True)    
-        
-        self.log_info = {} # used in gradio
-        self.show_info = show_info # show visualization and info in console
+        if isinstance(task_config, dict):
+            task_config_data = task_config
+        elif isinstance(task_config, str):
+            print(f"[init]Loading task config from {task_config}")
+            with open(task_config, 'r') as f:
+                task_config_data = json.load(f)
+                
+        super().__init__(task_config_data, map_config_data)
        
         print(f"[init]Loading config from {config}")
         with open(config, 'r') as f:
@@ -74,12 +85,60 @@ class Navigator(BaseNavigator):
             self.action_mode = "openai"
         elif control_mode == "human":
             self.action_mode = "human"
+            
+        if 'log_root' in map_config_data: # legacy
+            self.log_root = map_config_data['log_root']
+        else:
+            log_dir_name = f"{time.strftime('%Y%m%d-%H%M%S')}_logs"
+            self.log_root = os.path.join('output', 'logs', log_dir_name)
+        os.makedirs(self.log_root, exist_ok=True)    
         
-        #self.qa_client = QA_Agent()
+        self.log_infos = []
+        self.show_info = show_info # show visualization and info in console
+            
+        # self.qa_client = QA_Agent()
+        vis_silent = False if show_info else True
+        target_nodes = [info["panoid"] for info in task_config_data["target_infos"]]
+        self.visualization = AgentVisualization(self.graph, self.log_root, target_nodes=target_nodes, silent=vis_silent)
 
-        # if show_info:
-        #     self.visualization = AgentVisualization(self.graph, self.image_root)
-    
+    def get_initial_prompt(self, start_config_file: str): #assuming this is a json config like overpasstask1 
+        with open(start_config_file, 'r') as f: 
+            content = json.load(f)
+        
+        start_lat = content['start']['lat']
+        start_lon = content['start']['lon']
+        target_lat = content['target']['lat']
+        target_lon = content['target']['lon']
+
+        def get_general_direction(start_lat, start_lon, target_lat, target_lon):
+            if target_lon > start_lon:
+                horizontal = "right" 
+            elif target_lon < start_lon:
+                horizontal = "left"  
+            else:
+                horizontal = None
+
+            if target_lat > start_lat:
+                vertical = "up"  
+            elif target_lat < start_lat:
+                vertical = "down" 
+            else:
+                vertical = None
+
+            if horizontal and vertical:
+                return f"{vertical} and {horizontal}"
+            elif horizontal:
+                return horizontal
+            elif vertical:
+                return vertical
+            else:
+                return "same location"
+
+        general_direction = get_general_direction(start_lat, start_lon, target_lat, target_lon)
+        path = f"https://maps.googleapis.com/maps/api/streetview?size=300x300&location={target_lat},{target_lon}&key=AIzaSyDv1zr5JJYKjv3MGIeYNEe5n1nP4gv2SSY&fov=90&heading=0&pitch=0&source=outdoor"
+        target_summary = VisionAnswering.get_image_summary(path, False)
+        return general_direction, target_summary
+         
     def send_message(self, message: str, files=[]):
         return self.client.send_message(message, files)
     
@@ -126,7 +185,7 @@ class Navigator(BaseNavigator):
                 image_feed = image_urls
             elif self.vision_mode == "vision_answering":
                 image_feed = []
-                map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, False)
+                map_of_summaries = self.answering.order_image_summaries(self.offsets, image_urls, self.help_message, False)
                 new_message = ""
                 for k, v in map_of_summaries.items(): 
                     new_message += f"At your {k} heading, we see {v}."
@@ -160,9 +219,10 @@ class Navigator(BaseNavigator):
                 print("="*50)
         elif mode == "human":
             action = input("Enter the move: ")
+            action_message = f"[Action: {action}] is human mode"
         else:
             raise ValueError("Invalid mode")
-        return action
+        return action, action_message
     
     def get_image_feature(self, graph_state, mode="human"):
         '''
@@ -188,7 +248,11 @@ class Navigator(BaseNavigator):
         return answer from the oracle
         TODO -> read human input should be able to work / gpt4o model for  
         '''
+        # question from QA agent
         message = self.oracle.question
+        self.log_info["qa_messages"]['answer'].append(message)
+        
+        # get question from main agent
         if mode == "poe_send_message":
             chunk = self.send_message(message=message)
             question = chunk['text']
@@ -196,75 +260,107 @@ class Navigator(BaseNavigator):
             question = self.send_message(message)
         elif mode == "human":
             question = input("Enter the question: ")
+        else:
+            raise ValueError("Invalid mode")
+        self.log_info["qa_messages"]['question'].append(question)
        
+        # get answer from QA agent
+        self.oracle.update_observations(
+            world_states=self.collect_world_state(), 
+            clues=None
+        )
         help_message = self.oracle.get_answer(question)
+        print(f"The result of help message is: {help_message}")
         return help_message
+    
+    def get_agent_vis(self, graph_state):
+        panoid, heading = graph_state
+        candidate_nodes = self.graph.get_candidate_nodes(panoid, heading)
+        candidate_nodeid = [node.panoid for node in candidate_nodes]
+        agent_vis_file = self.visualization.update(panoid, candidate_nodeid)
+        return agent_vis_file
 
-    def forward(self, start_graph_state): 
+    def forward(self): 
+        start_graph_state = (self.start_node, self.task_config.get("start_heading", 0))
         self.graph_state = start_graph_state
         self.graph_state = self.fix_heading(self.graph_state)
         print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")
         self.help_message = None
         #self.visualization.init_current_node(self.graph_state[0])
 
-        i = 0
-        # agent_lost = []
-        # agent_move = []
-        agent_response = []
-        while True: 
-            # get current state
-            current_nodeid = self.graph_state[0]
-            heading = self.graph_state[1]
-            candidate_nodes = self.graph.get_candidate_nodes(current_nodeid, heading)
-            candidate_nodeid = [node.panoid for node in candidate_nodes]
-            #self.visualization.update(current_nodeid, candidate_nodeid)
-    
+        instruction_ctn = 0
+        
+        # initial state
+        step = 0
+        self.log_info = {'step': step, 'log_root': self.log_root}
+        self.log_info["current_state"] = self.graph_state
+        self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
+        self.log_info["image_urls"] = self.get_image_feature(self.graph_state, mode=self.action_mode)
+        self.log_info["action"] = "start"
+        self.log_info["message"] = [self.config["policy"]]
+        self.log_info["target_status"] = [info["status"] for info in self.target_infos]
+        yield self.log_info
+        
+        step += 1
+        while True:     
+            if step > self.log_info['step']: # new state, reset log_info
+                self.log_infos.append(self.log_info)
+                self.log_info = {'step': step, 'log_root': self.log_root, 'image_urls': self.log_info['image_urls']}
+            
             # get action/move
             if self.help_message: # is asking for help, previous action is lost
-                message = self.get_navigation_instructions(self.help_message, phase="help")
+                message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
                 self.help_message = None
-                action = self.get_navigation_action([], message, mode=self.action_mode)
-                #agent_lost.append((message, action))
+                action, action_message = self.get_navigation_action([], message, mode=self.action_mode)
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
-                message = self.get_navigation_instructions(supp_instructions= "" if i >= len(NAVIGATION_LVL_2) else NAVIGATION_LVL_2[i])
-                i += 1
-                action = self.get_navigation_action(image_urls, message, mode=self.action_mode)
-                #agent_move.append((message, action))
-            
-            agent_response.append(("Context: " + message, "Agent Action: " + action))
-            if action == 'stop': 
-                print("Action stop is chosen")
-                with open("sample_response.py", "w") as file:
-                    file.write(f"sample_response = {repr(agent_response)}")
-                print(self.evaluator.calculate_score(agent_response, True))
-                break
-            elif action == 'lost':
+                self.log_info["image_urls"] = image_urls
+                message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[instruction_ctn])
+                instruction_ctn += 1
+                action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
+                
+            if 'message' not in self.log_info:
+                self.log_info['message'] = []
+            self.log_info["message"].append(message)
+            self.log_info["action"] = action
+            self.log_info["action_message"] = action_message
+                
+            # if action == 'stop': 
+            #     step += 1
+            #     print("Action stop is chosen")
+            # elif action == 'lost':
+            if action == 'lost':
+                if 'qa_messages' not in self.log_info:
+                    self.log_info['qa_messages'] = {'question': [], 'answer': []}
+                self.log_info['qa_messages']['question'].append('lost')
                 self.help_message = self.ask_for_help(mode=self.action_mode)
+                self.log_info['qa_messages']['answer'].append(self.help_message)
             else:
+                step += 1
                 err_message = self.step(action)
                 if err_message != '':  # if has err, pass err message as help message
                     self.help_message = err_message
+                    self.help_message += "\n"
+                    self.help_message += self.log_info["message"][0] # instruction message
+                    
+            # update visualization
+            agent_vis_file = self.get_agent_vis(self.graph_state)
+            self.log_info["current_state"] = self.graph_state
+            self.log_info["agent_vis"] = agent_vis_file
+            self.log_info["target_status"] = [info["status"] for info in self.target_infos]
                                     
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
-                # yield self.graph_state
-        return self.log_info
-    
-class Oracle: 
-    def __init__(self, oracle_config: dict): 
-        oracle_agent_prompt = oracle_config["prompt"]
-        llm_config = {"config_list": [{"model": "gpt-4o-mini", "api_key": os.environ.get("OPENAI_API_KEY")}]}
-        self.mode = oracle_config["mode"]
-        self.question = oracle_config["question"]
-        # self.mode = "human"
-        #TODO create a new openAI agent here  
-    def get_answer(self, question): 
-        #TODO get answer from the model 
-        if self.mode == "human": 
-            print(f"Question: {question}")
-            answer = input("Enter the answer: ")
-        return answer
+                
+            if action == 'stop' and self.check_arrival_all():
+                
+                self.log_infos.append(self.log_info)
+                with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
+                    json.dump(self.log_infos, f)    
+                    
+                self.log_info["over"] = True
+                    
+            yield self.log_info
         
 def show_graph_info(graph):
     max_neighbors = 0
@@ -287,8 +383,9 @@ if __name__ == "__main__":
     map_config = "config/overpass_streetmap_map.json"
     vision_config = os.path.join("config", "human_test_vision.json")
     eval_config = os.path.join("config", "evaluator.json")
+    task_config = os.path.join("config", "overpass_task1.json")
 
-    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, eval_config=eval_config, show_info=True)
+    navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config, eval_config=eval_config, task_config=task_config, show_info=True)
     # show_graph_info(navigator.graph)
     # navigator.forward(
     #     start_graph_state=('65287201', 0),
@@ -296,7 +393,22 @@ if __name__ == "__main__":
     navigator.forward(
         start_graph_state=('4018889690', 0),
     )
-    # image_features = navigator.get_image_feature(graph_state=('65287201', 0), mode="openai")
-    # print(image_features)
-    # test = navigator.get_navigation_action(image_urls=image_features, message="Where are we")
-    # print(test)
+
+
+    # navigator = Navigator(config=navi_config, 
+    #                       oracle_config=oracle_config, 
+    #                       answering_config=vision_config, 
+    #                       map_config=map_config, 
+    #                       task_config=task_config,
+    #                       show_info=True)
+    # task = navigator.forward()
+    # while True:
+    #     info = next(task)
+    #     print(info)
+    #     action = info["action"]
+    #     if info.get("over", False):
+    #         break
+    
+
+        
+    
