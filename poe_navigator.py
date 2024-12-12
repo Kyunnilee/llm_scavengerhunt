@@ -4,6 +4,9 @@ from base_navigator import BaseNavigator
 from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
 from poe_agent import PoeAgent
+from anthropic_agent import AnthropicAgent
+from gemini_agent import GeminiAgent
+from mistral_agent import MistralaiAgent
 from qa_agent import Oracle
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
 from util import AgentVisualization
@@ -50,6 +53,11 @@ class Navigator(BaseNavigator):
         print(f"[init]Loading config from {config}")
         with open(config, 'r') as f:
             self.config = json.load(f)
+            
+        target_names = [info["name"] for info in task_config_data["target_infos"]]
+        target_names = ", ".join(target_names)
+        self.config["policy"] = self.config["policy"].replace("<<<target_name>>>", target_names)
+        print(f"[init]Policy/Init prompt: {self.config['policy']}")
 
         print(f"[init]Loading oracle config")
         self.oracle = Oracle()
@@ -67,16 +75,26 @@ class Navigator(BaseNavigator):
 
         with open(eval_config, 'r') as f:
             eval_config_data = json.load(f)
-            self.evaluator = AgentEvaluator(eval_config_data)    
+            self.evaluator = AgentEvaluator(eval_config_data)
+                
+        self.offsets = [-90, -45, 0, 45, 90]
         
         control_mode = self.config['mode']
         print(f"[init]Control mode: {control_mode}")
-        self.offsets = [-90, -45, 0, 45, 90]
         if control_mode == "poe":
             self.client = PoeAgent(self.config) 
             self.action_mode = "agent"
         elif control_mode == "openai":
             self.client = OpenAIAgent(self.config)
+            self.action_mode = "agent"
+        elif control_mode == "anthropic":
+            self.client = AnthropicAgent(self.config)
+            self.action_mode = "agent"
+        elif control_mode == "gemini":
+            self.client = GeminiAgent(self.config)
+            self.action_mode = "agent"
+        elif control_mode == "mistral":
+            self.client = MistralaiAgent(self.config)
             self.action_mode = "agent"
         elif control_mode == "human":
             self.action_mode = "human"
