@@ -14,10 +14,10 @@ class PoeAgent():
         self.client = PoeApi(tokens=self.tokens)
         system_prompt = cfg['policy']
         self.chat_id = None
-        chunk = self.send_message(system_prompt)
+        chunk = self._send_message_chunk(system_prompt)
         self.chat_id = chunk['chatId'] #to get continue the conversation in the same thread 
         
-    def send_message(self, message:str, image_paths=[]):
+    def _send_message_chunk(self, message:str, image_paths=[]):
         '''
         may need to change along if we are doing it the base64 encoding case 
         TODO: not stable yet!!
@@ -25,4 +25,10 @@ class PoeAgent():
         for chunk in self.client.send_message(bot=self.model, message=message, file_path=image_paths, chatId=self.chat_id): 
             time.sleep(0.01)
             pass 
-        return chunk 
+        return chunk
+    
+    def send_message(self, message:str, image_paths=[]):
+        for chunk in self.client.send_message(bot=self.model, message=message, file_path=image_paths, chatId=self.chat_id): 
+            time.sleep(0.01)
+            pass 
+        return chunk['text']
