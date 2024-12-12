@@ -29,9 +29,7 @@ def start_navigation(navi_config, vision_config, map_config, task_config, evalua
                           eval_config=evaluator_config,
                           show_info=False)
     
-    with open(navi_config, "r") as f:
-        navi_config_data = json.load(f)
-    init_prompt = navi_config_data["policy"]
+    init_prompt = navigator.config["policy"]
     
     with open(task_config, "r") as f:
         task_config_data = json.load(f)
