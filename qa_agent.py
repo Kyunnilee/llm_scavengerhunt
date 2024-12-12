@@ -99,8 +99,9 @@ class Oracle():
             qa_prompt = qa_prompt.replace("<<<Testing_Agent_Question>>>", question)
 
             answer = self.qa_agent.send_message(qa_prompt)
-            print("[[Logs]]: Answer generated. Returning to testing agent...")
-
+            print("[[Logs]]: Answer generated. Parsing and returning to testing agent...")
+            answer = self._remove_thinking_content(answer)
+            
         return answer
 
     def _eval_question(self, question):
@@ -140,6 +141,15 @@ class Oracle():
         pattern = r'[123]'
         found = re.findall(pattern, input_str)
         return list(map(int, found))[-1]
+
+    def _remove_thinking_content(self, text):
+        """
+        Remove thinking content enclosed within '[Thinking Content: ' and ':END of Thinking]'
+        """
+        cleaned_text = re.sub(r'\[Thinking Content:.*?:END of Thinking\]', '', text, flags=re.DOTALL)
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
+        
+        return cleaned_text
 
 
 if __name__ == "__main__":
