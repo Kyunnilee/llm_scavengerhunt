@@ -74,10 +74,10 @@ class Navigator(BaseNavigator):
         self.offsets = [-90, -45, 0, 45, 90]
         if control_mode == "poe":
             self.client = PoeAgent(self.config) 
-            self.action_mode = "poe_send_message"
+            self.action_mode = "agent"
         elif control_mode == "openai":
             self.client = OpenAIAgent(self.config)
-            self.action_mode = "openai"
+            self.action_mode = "agent"
         elif control_mode == "human":
             self.action_mode = "human"
             
@@ -91,10 +91,9 @@ class Navigator(BaseNavigator):
         self.log_infos = []
         self.show_info = show_info # show visualization and info in console
             
-        # self.qa_client = QA_Agent()
         vis_silent = False if show_info else True
         target_nodes = [info["panoid"] for info in task_config_data["target_infos"]]
-        self.visualization = AgentVisualization(self.graph, self.log_root, target_nodes=target_nodes, silent=vis_silent)
+        self.visualization = AgentVisualization(self.graph, self.log_root, google_api=api_key, target_nodes=target_nodes, silent=vis_silent)
 
     def get_initial_prompt(self, start_config_file: str): #assuming this is a json config like overpasstask1 
         with open(start_config_file, 'r') as f: 
@@ -139,9 +138,9 @@ class Navigator(BaseNavigator):
     
     def parse_action(self, action_message: str):
         '''
-        match [forward, left, right, turn_around, stop, lost]
+        match [forward, left, right, turn_around, stop, ask]
         '''
-        acton_space = ["forward", "left", "right", "turn_around", "stop", "lost"]
+        acton_space = ["forward", "left", "right", "turn_around", "stop", "ask"]
     
         match = re.search(r'\[Action:\s*(.*?)\]', action_message)
         if match: # try to match `[Action: ...]` first
@@ -151,6 +150,7 @@ class Navigator(BaseNavigator):
         for action in acton_space: # if not matched, try to directly match the action in the message
             if action in action_message:
                 return action
+        return "invalid action"
         
     def get_navigation_instructions(self, help_message=None, phase="new_state", supp_instructions=""): #phase = new_state, help
         if phase == "new_state":
@@ -160,14 +160,14 @@ class Navigator(BaseNavigator):
             message += "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images."
             # message2 = "You can go through the following directions, to the new nodes: " + self.get_state_edges(self.graph_state)
             message3 = "You can take following action: " + self.show_state_info(self.graph_state)
-            message4 = "Action: lost, ask for help.\nAction: stop, end the navigation."
+            message4 = "Action: ask, ask for help.\nAction: stop, end the navigation."
             
             message += '\n' + message3 + '\n' + message4 + '\n' + supp_instructions
         elif phase == "help":
             message = help_message
         return message
     
-    def get_navigation_action(self, image_urls, message: str, mode="poe_send_message"):    
+    def get_navigation_action(self, image_urls, message: str, mode="human"):    
         # vision information    
         if image_urls != [] and image_urls != None:
             if self.vision_mode == "url":
@@ -189,16 +189,7 @@ class Navigator(BaseNavigator):
             print(f"Image features: {image_urls}")
             print("*"*50)   
         image_feed = []
-        if mode == "poe_send_message":
-            chunk = self.send_message(message=message, files=image_feed)
-            action_message = chunk["text"]
-            action = self.parse_action(action_message)
-            if self.show_info:
-                print("="*50, "[get_navigation_action] Agent output:")
-                print(f"Action message: {action_message}")
-                print(f"Action: {action}")
-                print("="*50)
-        elif mode == "openai":
+        if mode == "agent":
             action_message = self.send_message(message, files=image_feed)
             action = self.parse_action(action_message)
             if self.show_info:
@@ -213,7 +204,7 @@ class Navigator(BaseNavigator):
             raise ValueError("Invalid mode")
         return action, action_message
     
-    def get_image_feature(self, graph_state, mode="human"):
+    def get_image_feature(self, graph_state):
         '''
         return_type: "List[url]"
         '''     
@@ -242,10 +233,7 @@ class Navigator(BaseNavigator):
         self.log_info["qa_messages"]['answer'].append(message)
         
         # get question from main agent
-        if mode == "poe_send_message":
-            chunk = self.send_message(message=message)
-            question = chunk['text']
-        elif mode == "openai":
+        if mode == "agent":
             question = self.send_message(message)
         elif mode == "human":
             question = input("Enter the question: ")
@@ -277,10 +265,10 @@ class Navigator(BaseNavigator):
         self.help_message = None
         self.visualization.init_current_node(self.graph_state[0])
 
-        instruction_ctn = 0
         
         # initial state
         step = 0
+        instruction_ctn = 0
         agent_response = []
         world_states = self.collect_world_state()
         shortest_path = world_states["path_action"]
@@ -289,7 +277,7 @@ class Navigator(BaseNavigator):
         self.log_info = {'step': step, 'log_root': self.log_root}
         self.log_info["current_state"] = self.graph_state
         self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
-        self.log_info["image_urls"] = self.get_image_feature(self.graph_state, mode=self.action_mode)
+        self.log_info["image_urls"] = self.get_image_feature(self.graph_state)
         self.log_info["action"] = "start"
         self.log_info["message"] = [self.config["policy"]]
         self.log_info["target_status"] = [info["status"] for info in self.target_infos]
@@ -302,12 +290,12 @@ class Navigator(BaseNavigator):
                 self.log_info = {'step': step, 'log_root': self.log_root, 'image_urls': self.log_info['image_urls']}
             
             # get action/move
-            if self.help_message: # is asking for help, previous action is lost
+            if self.help_message: # is asking for help, previous action is ask
                 message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
                 self.help_message = None
                 action, action_message = self.get_navigation_action([], message, mode=self.action_mode)
             else:
-                image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
+                image_urls = self.get_image_feature(self.graph_state)
                 self.log_info["image_urls"] = image_urls
                 message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_1) else NAVIGATION_LVL_1[instruction_ctn])
                 instruction_ctn += 1
@@ -321,14 +309,10 @@ class Navigator(BaseNavigator):
             self.log_info["action"] = action
             self.log_info["action_message"] = action_message
                 
-            # if action == 'stop': 
-            #     step += 1
-            #     print("Action stop is chosen")
-            # elif action == 'lost':
-            if action == 'lost':
+            if action == 'ask':
                 if 'qa_messages' not in self.log_info:
                     self.log_info['qa_messages'] = {'question': [], 'answer': []}
-                self.log_info['qa_messages']['question'].append('lost')
+                self.log_info['qa_messages']['question'].append('ask')
                 self.help_message = self.ask_for_help(mode=self.action_mode)
                 self.log_info['qa_messages']['answer'].append(self.help_message)
             else:
@@ -348,10 +332,15 @@ class Navigator(BaseNavigator):
             if self.show_info: 
                 print(self.show_state_info(self.graph_state))
                 
-            if action == 'stop' and self.check_arrival_all():
+            # if achive all target or reach max step, end the navigation
+            if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
                 print("DONE")
                 # world_states = self.collect_world_state()
                 self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
+                
+                # TODO: add other log info here
+                self.log_info["arrival_info"] = self.collect_arrival_info()
+                
                 self.log_infos.append(self.log_info)
                 with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
                     json.dump(self.log_infos, f)    

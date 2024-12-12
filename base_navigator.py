@@ -21,6 +21,9 @@ class BaseNavigator:
         
         self.task_config = task_config
         self.start_node: str = task_config["start_node"]
+        # self.max_steps: int = task_config["max_steps"]
+        self.max_step: int = 250 # tmp, for 12/12 testing 
+        
         # Assume we have only one target now, hence len(list)==1
         self.target_infos: List[Dict[str, str]] = task_config["target_infos"] # key: panoid, status, ...
         for info in self.target_infos:
@@ -40,7 +43,7 @@ class BaseNavigator:
             if arrive:
                 return f'Arrived at target {info["name"]}, place: {info["panoid"]}.'
             else:
-                return 'Not arrived yet.'
+                return "Not arrived yet. Can't choose stop."
         
         available_actions, _ = self.get_available_next_moves(self.graph_state)
         if action not in available_actions:
@@ -322,6 +325,15 @@ class BaseNavigator:
             if not info["status"]:
                 return False
         return True
+    
+    def collect_arrival_info(self):
+        '''
+        Collect the arrival information of the navigator.
+        '''
+        arrival_info = []
+        for info in self.target_infos:
+            arrival_info.append({"name": info["name"], "panoid": info["panoid"], "status": info["status"]})
+        return arrival_info
 
     
     def collect_world_state(self):
@@ -372,20 +384,13 @@ class BaseNavigator:
 
     def show_state_info(self, graph_state):
         '''Given a graph state, show current state information and available next moves.'''
-        message = 'Current graph state: {}'.format(graph_state)
-        # print('Current graph state: {}'.format(graph_state))
+        message = ''
         available_actions, next_graph_states = self.get_available_next_moves(graph_state)
-
-        # print('Available next actions and graph states:')
-        message += '\nAvailable next actions and graph states:'
         for action, next_graph_state in zip(available_actions, next_graph_states):
-            # print('Action: {}, to graph state: {}'.format(action, next_graph_state))
             if action == 'forward':
-                message += f'\nAction: {action}, to graph state: {next_graph_state}'
+                message += f'\nAction: {action}, go to: {self.graph.get_node_coordinates(next_graph_state[0])}, heading: {next_graph_state[1]}'
             else:
                 message += f'\nAction: {action}, heading: {next_graph_state[1]}'
-        # print('==============================')
-        # print(message)
         return message
         
     def get_state_edges(self, graph_state):
@@ -395,7 +400,6 @@ class BaseNavigator:
         message = f'Edges of node {panoid}:'
         for heading, node in edges.items():
             message += f'\nHeading: {heading}, node: {node.panoid}, lat: {node.coordinate[0]}, lng: {node.coordinate[1]}'
-        # print(message)
         return message
 
 if __name__ == "__main__":
