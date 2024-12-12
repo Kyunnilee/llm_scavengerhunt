@@ -37,7 +37,7 @@ def generate_task_jsons(source_data: Dict[str, Any], output_dir: str = "output/t
             "start_node": start_point["node_id"],
             "start_heading": 0,
             "target_infos": target_infos,
-            "arrive_threshold": 1e-10
+            "arrive_threshold": 25
         }
         
         # Create filename using start node ID

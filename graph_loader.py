@@ -236,7 +236,7 @@ if __name__ == "__main__":
         "link": "output/overpass_streetmap/touchdown/links.txt"
     }
     g = GraphLoader(cfg).construct_graph()
-    
+    #print(haversine((40.744981, -73.978682),(40.744904, -73.978949)))
     print(get_rel_direction(curr_coord=(0, 0), 
                             target_coord=(10, 0), 
                             heading=-90))

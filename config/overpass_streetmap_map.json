@@ -1,4 +1,4 @@
 {
-    "node": "output/overpass_streetmap/touchdown/nodes.txt",
-    "link": "output/overpass_streetmap/touchdown/links.txt"
+    "node": "touchdown/graph/nodes.txt",
+    "link": "touchdown/graph/links.txt"
 }
