@@ -1,24 +1,12 @@
 # -*- coding:utf-8 -*-
 
-import os
 import re
-import sys
-
-import warnings
 
 import config.openai_oracle as openai_oracle
 from openai_agent import OpenAIAgent
 
 class Oracle(): 
-    def __init__(self, oracle_config: dict): 
-        
-        warnings.warn(
-            "oracle_config is deprecated and will be removed in a future version. "
-            "Please use config/openai_oracle.py instead.",
-            FutureWarning,
-            stacklevel=2
-        )
-
+    def __init__(self): 
         # self.mode is gpt model or human
         # self.question is question sent from QA_Agent to Navi_Agent
         self.model = openai_oracle.model

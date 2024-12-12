@@ -25,7 +25,6 @@ class Navigator(BaseNavigator):
     
     def __init__(self, 
                  config:str, 
-                 oracle_config:str, 
                  answering_config:str, 
                  map_config: str|dict,
                  eval_config: str, 
@@ -52,7 +51,7 @@ class Navigator(BaseNavigator):
         with open(config, 'r') as f:
             self.config = json.load(f)
 
-        print(f"[init]Loading oracle config from {oracle_config}")
+        print(f"[init]Loading oracle config")
         self.oracle = Oracle()
         
         print(f"[init]Loading vision config from {answering_config}")
@@ -379,14 +378,12 @@ if __name__ == "__main__":
     navi_config = r"config\human_test_navi.json"
     #navi_config = os.path.join("config", "openai_test_navi_3.json")
     # navi_config = r"config\poe_test_navi.json"
-    oracle_config = os.path.join("config", "human_test_oracle.json")
     vision_config = os.path.join("config", "human_test_vision.json")
     map_config = os.path.join("config", "overpass_streetmap_map.json")
     eval_config = os.path.join("config", "evaluator.json")
     task_config = os.path.join("config", "overpass_task1.json")
 
     navigator = Navigator(config=navi_config, 
-                          oracle_config=oracle_config, 
                           answering_config=vision_config, 
                           map_config=map_config,
                           eval_config=eval_config, 

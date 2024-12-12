@@ -9,21 +9,18 @@ import json
 def update_config_files():
     new_navi_choices = [file.split('.')[0] for file in os.listdir(config_root) if "navi" in file]
     new_vision_choices = [file.split('.')[0] for file in os.listdir(config_root) if "vision" in file]
-    new_oracle_choices = [file.split('.')[0] for file in os.listdir(config_root) if "oracle" in file]
     new_map_choices = [file.split('.')[0] for file in os.listdir(config_root) if "map" in file]
     new_task_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]   
-    return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_oracle_choices), gr.update(value=[], choices=new_map_choices), gr.update(value=[], choices=new_task_choices)
+    return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_map_choices), gr.update(value=[], choices=new_task_choices)
 
-def start_navigation(navi_config, vision_config, oracle_config, map_config, task_config):
+def start_navigation(navi_config, vision_config, map_config, task_config):
     navi_config = os.path.join(config_root, navi_config[0]+".json")
-    oracle_config = os.path.join(config_root, oracle_config[0]+".json")
     vision_config = os.path.join(config_root, vision_config[0]+".json")
     map_config = os.path.join(config_root, map_config[0]+".json")
     task_config = os.path.join(config_root, task_config[0]+".json")
     
     global navigator
     navigator = Navigator(config=navi_config, 
-                          oracle_config=oracle_config, 
                           answering_config=vision_config, 
                           map_config=map_config,
                           task_config=task_config,
@@ -111,7 +108,6 @@ def update_current_step(current_step):
 config_root = "config"
 navi_config_root = os.path.join(config_root, "navi_config")
 vision_config_root = os.path.join(config_root, "vision_config")
-oracle_config_root = os.path.join(config_root, "qa_config")
 map_config_root = os.path.join(config_root, "map_config")
 task_config_root = os.path.join(config_root, "task_config")
 
@@ -125,9 +121,6 @@ navi_config_selection = gr.Dropdown(value=[],label="Navigator Config", choices=n
 
 vision_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "vision" in file]
 vision_config_selection = gr.Dropdown(value=[],label="Vision Config", choices=vision_config_choices, max_choices=1, multiselect=True, interactive=True)
-
-oracle_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "oracle" in file]
-oracle_config_selection = gr.Dropdown(value=[],label="Oracle Config", choices=oracle_config_choices, max_choices=1, multiselect=True, interactive=True)
 
 map_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "map" in file]
 map_config_selection = gr.Dropdown(value=[],label="Map Config", choices=map_config_choices, max_choices=1, multiselect=True, interactive=True)
@@ -166,7 +159,6 @@ with gr.Blocks() as demo:
     with gr.Row(equal_height=True):
         navi_config_selection.render()
         vision_config_selection.render()
-        oracle_config_selection.render()
         map_config_selection.render()
         task_config_selection.render()
         refresh_button.render()
@@ -198,11 +190,11 @@ with gr.Blocks() as demo:
     with gr.Row():
         log_root_text.render()
         
-    refresh_button.click(fn=update_config_files, inputs=None, outputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection])
+    refresh_button.click(fn=update_config_files, inputs=None, outputs=[navi_config_selection, vision_config_selection, map_config_selection, task_config_selection])
     
     start_button.click(fn=start_navigation, 
-                       inputs=[navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection], 
-                       outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, oracle_config_selection, map_config_selection, task_config_selection, refresh_button, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox]).then(run_navigation, inputs=None, outputs=[total_steps_num])
+                       inputs=[navi_config_selection, vision_config_selection, map_config_selection, task_config_selection], 
+                       outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, map_config_selection, task_config_selection, refresh_button, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox]).then(run_navigation, inputs=None, outputs=[total_steps_num])
     
     last_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(-1)], outputs=[current_step_num])
     next_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(1)], outputs=[current_step_num])
@@ -215,9 +207,8 @@ if __name__ == "__main__":
 
 
 # navi_config = "config/human_test_navi.json"
-# oracle_config = os.path.join("config", "human_test_oracle.json")
 # vision_config = "config/human_test_vision.json"
 # map_config = "config/map_config.json"
 
-# navigator = Navigator(config=navi_config, oracle_config=oracle_config, answering_config=vision_config, map_config=map_config,show_info=True)
+# navigator = Navigator(config=navi_config, answering_config=vision_config, map_config=map_config,show_info=True)
 # navigator.forward(('65303689', 0))
