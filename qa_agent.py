@@ -48,7 +48,7 @@ class Oracle():
         Updates oracle's observation of world_states and additional clues.
         """
         self.latest_world_states = world_states
-        self.clues = clues
+        self.latest_clues = clues
 
     def get_answer(self, question): 
         """
@@ -68,12 +68,16 @@ class Oracle():
                 path_description = "Not provided for this question"
             else:
                 path_description = self._translate_path(
-                    path=self.latest_world_states["path_action"], 
+                    path=self.latest_world_states["path_action"],
+                    streets=self.latest_world_states["path_streets"], 
                     detail_level=question_detail_level
                 )
                 print(f"[[Logs]]: Path description generated")
             
             qa_prompt = openai_oracle.qa_final_prompt
+
+            print(self.latest_clues)
+            # exit(0)
 
             qa_prompt = qa_prompt.replace("<<<target_name>>>", self.latest_world_states["target_name"])
             qa_prompt = qa_prompt.replace("<<<abs_target_pos>>>", str(self.latest_world_states["abs_target_pos"]))
@@ -85,6 +89,22 @@ class Oracle():
             qa_prompt = qa_prompt.replace("<<<rel_curr_pos>>>", str(self.latest_world_states["rel_curr_pos"]))
             qa_prompt = qa_prompt.replace("<<<path_description>>>", path_description)
             qa_prompt = qa_prompt.replace("<<<Testing_Agent_Question>>>", question)
+
+            qa_prompt = qa_prompt.replace("<<<curr_nearby_landmarks>>>", 
+                                          self._parse_nearby_objects(self.latest_clues["curr_nearby_landmarks"]))
+            qa_prompt = qa_prompt.replace("<<<curr_nearby_attractions>>>", 
+                                          self._parse_nearby_objects(self.latest_clues["curr_nearby_attractions"]))
+            qa_prompt = qa_prompt.replace("<<<curr_nearby_neighbors>>>", 
+                                          self._parse_nearby_objects(self.latest_clues["curr_nearby_neighbors"]))
+            qa_prompt = qa_prompt.replace("<<<curr_street>>>", self.latest_clues["curr_street"])
+            
+            qa_prompt = qa_prompt.replace("<<<target_nearby_landmarks>>>", 
+                                          self._parse_nearby_objects(self.latest_clues["target_nearby_landmarks"]))
+            qa_prompt = qa_prompt.replace("<<<target_nearby_attractions>>>", 
+                                          self._parse_nearby_objects(self.latest_clues["target_nearby_attractions"]))
+            qa_prompt = qa_prompt.replace("<<<target_nearby_neighbors>>>", 
+                                          self._parse_nearby_objects(self.latest_clues["target_nearby_neighbors"]))
+            qa_prompt = qa_prompt.replace("<<<target_street>>>", self.latest_clues["target_street"])
 
             answer = self.qa_agent.send_message(qa_prompt)
             print("[[Logs]]: Answer generated. Parsing and returning to testing agent...")
@@ -104,7 +124,10 @@ class Oracle():
         else:
             return self._parse_score(answer)
 
-    def _translate_path(self, path: list[str], detail_level: int):
+    def _translate_path(self, 
+                        path: list[str], 
+                        streets: list[str], 
+                        detail_level: int):
         """
         Assumes detail_level: int in [1, 3], valid levels.
         Returns translated path (from list[str] to human friendly text)
@@ -113,8 +136,16 @@ class Oracle():
         if detail_level == 1:
             input_message = input_message.replace("<<<rel_target_pos>>>", self.latest_world_states["rel_target_pos"])
         elif detail_level in [2, 3]:
-            path = list(map(lambda x: "Action: " + x, path))
-            path_text = "\n".join(path)
+            path_text = ""
+            curr_street_idx = 0
+            for action in path:
+                curr_street_name = streets[curr_street_idx]
+                path_text += \
+                    f"Currently at: {curr_street_name}; Take action: {action}\n"
+
+                if action == "forward":
+                    curr_street_idx += 1
+                
             input_message = input_message.replace("<<<path_action>>>", path_text)
 
         text_navigation = self.path_translate_agent.send_message(input_message)
@@ -139,7 +170,20 @@ class Oracle():
         
         return cleaned_text
 
+    def _parse_nearby_objects(self, objects):
+        if isinstance(objects, dict):
+            return f"- name: {objects["name"]}, address: {objects["address"]}"
+        elif isinstance(objects, list):
+            result = ""
+            for obj in objects:
+                result += f"- name: {obj["name"]}, address: {obj["address"]}\n"
+            return result
+        elif isinstance(objects, str):
+            return objects
+        
+        # raise ValueError
+
+
 
 if __name__ == "__main__":
     qa_agent = Oracle()
-

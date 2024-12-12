@@ -75,7 +75,7 @@ qa_final_prompt = qa_init_prompt + \
 """Now the game has begun, and the testing agent DO GETS LOST.
 Here is the world states provided. Please generate a proper answer to the testing agent.
 
-[World States Provided as Follows:]
+[World States Provided as Follows: ]
 The testing agent's target is <<<target_name>>>. 
 This means that the testing agent is heading torwards <<<target_name>>>, and he must get there to win the game.
 
@@ -91,6 +91,28 @@ The relative position of the target to the current location is: <<<rel_target_po
 The relative position of the current position to the target is: <<<rel_curr_pos>>>
 
 The path from current location to target location is: <<<path_description>>>
+
+The landmarks nearby current location are: 
+<<<curr_nearby_landmarks>>>
+
+The attractions nearby current location are: 
+<<<curr_nearby_attractions>>>
+
+The neighbors nearby current location (in a shorter distance; i.e. closer than above) are: 
+<<<curr_nearby_neighbors>>>
+
+The current street that the testing agent is located as is: <<<curr_street>>>
+
+The landmarks nearby target location are: 
+<<<target_nearby_landmarks>>>
+
+The attractions nearby target location are: 
+<<<target_nearby_attractions>>>
+
+The neighbors nearby target location (in a shorter distance; i.e. closer than above) are: 
+<<<target_nearby_neighbors>>>
+
+The target is located at street: <<<target_street>>>
 [World States Ends]
 
 [Question from the Testing Agent: ]

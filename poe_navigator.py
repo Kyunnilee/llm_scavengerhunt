@@ -5,7 +5,7 @@ from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
 from poe_agent import PoeAgent
 from anthropic_agent import AnthropicAgent
-from gemini_agent import GeminiAgent
+# from gemini_agent import GeminiAgent
 from mistral_agent import MistralaiAgent
 from qa_agent import Oracle
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
@@ -260,9 +260,10 @@ class Navigator(BaseNavigator):
         self.log_info["qa_messages"]['question'].append(question)
        
         # get answer from QA agent
+        world_states, clues = self.collect_observations()
         self.oracle.update_observations(
-            world_states=self.collect_world_state(), 
-            clues=None
+            world_states=world_states, 
+            clues=clues
         )
         help_message = self.oracle.get_answer(question)
         print(f"The result of help message is: {help_message}")
@@ -288,7 +289,7 @@ class Navigator(BaseNavigator):
         step = 0
         instruction_ctn = 0
         agent_response = []
-        world_states = self.collect_world_state()
+        world_states, clues = self.collect_observations()
         shortest_path = world_states["path_action"]
         print("Path to Target: ", world_states["path_action"])
 
@@ -353,7 +354,6 @@ class Navigator(BaseNavigator):
             # if achive all target or reach max step, end the navigation
             if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
                 print("DONE")
-                # world_states = self.collect_world_state()
                 self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
                 
                 # TODO: add other log info here

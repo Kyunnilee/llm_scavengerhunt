@@ -4,6 +4,7 @@ from graph_loader import *
 from typing import *
 
 import os
+import googlemaps
 
 turn_around_angle_limit = 60
 forward_angle_limit = 90
@@ -296,7 +297,105 @@ class BaseNavigator:
             action_list += curr_action_list
         
         return action_list, path
+
+    def _query_clue(self, lat: float, lng: float, info_type: str) -> Dict:
+        """
+        Get specific information about a location.
+        
+        Args:
+            lat: Latitude
+            lng: Longitude
+            info_type: Type of information wanted 
+                ('street' | 'neighbors' | 'landmarks' | 'attractions')
+        
+        Returns:
+            Dictionary containing requested information
+        """
+        try:
+            google_api_key = os.environ.get("GOOGLE_API_KEY")
+            if google_api_key is None:
+                raise ValueError("Your GOOGLE_API_KEY is None. Check if it is in your environment. If it is, try restart computer.")
+            gmaps = googlemaps.Client(key=google_api_key)
+            
+            if info_type == 'street':
+                result = gmaps.reverse_geocode((lat, lng))
+                if result:
+                    # iter through all streets
+                    for component in result[0]['address_components']:
+                        if 'route' in component['types']:
+                            return {"street": component['long_name']}
+                    # if type route not found, return sublocality
+                    for component in result[0]['address_components']:
+                        if 'sublocality' in component['types']:
+                            return {"street": component['long_name']}
+                return {"street": "Unknown street"}
+                
+            elif info_type == 'neighbors':
+                result = gmaps.places_nearby(
+                    location=(lat, lng),
+                    radius=20,  # 20, radius
+                    type='premise'
+                )
+                
+                if not result.get('results'):
+                    return {"neighbors": "No buildings found"}
+                
+                nearest = result['results'][0]
+                return {"neighbors": {
+                    "name": nearest['name'],
+                    "address": nearest.get('vicinity', 'No address'),
+                    "type": nearest.get('types', ['unknown'])[0]
+                }}
+                
+            elif info_type == 'landmarks':
+                result = gmaps.places_nearby(
+                    location=(lat, lng),
+                    radius=50,  # 50m radius
+                    type='point_of_interest'
+                )
+                
+                if not result.get('results'):
+                    return {"landmarks": "No landmarks found"}
+                    
+                landmarks = []
+                for place in result['results'][:3]: # ONLY use the first 3
+                    landmarks.append({
+                        "name": place['name'],
+                        "address": place.get('vicinity', 'No address')
+                    })
+                return {"landmarks": landmarks}
+                
+            elif info_type == 'attractions':
+                result = gmaps.places_nearby(
+                    location=(lat, lng),
+                    radius=50,
+                    type='tourist_attraction'
+                )
+                
+                if not result.get('results'):
+                    return {"attractions": "No attractions found"}
+                    
+                attractions = []
+                for place in result['results'][:3]:
+                    attractions.append({
+                        "name": place['name'],
+                        "address": place.get('vicinity', 'No address')
+                    })
+                return {"attractions": attractions}
+                
+            else:
+                return {"error": "Unknown info_type"}
+                
+        except Exception as e:
+            return {"error": f"Failed to get information: {str(e)}"}
     
+    def _query_batch_streetnames(self, panoids: List[str]) -> List[str]:
+        streetnames = []
+        for panoid in panoids:
+            coord = self.graph.nodes[panoid].coordinate
+            streetnames.append(self._query_clue(coord[0], coord[1], "street"))
+        return streetnames
+
     def check_arrival(self):
         '''
         Check if the navigator has arrived at the target node.
@@ -335,12 +434,12 @@ class BaseNavigator:
             arrival_info.append({"name": info["name"], "panoid": info["panoid"], "status": info["status"]})
         return arrival_info
 
-    
-    def collect_world_state(self):
+    def collect_observations(self):
         '''
         Collect all related world states as input of QA agent
         '''
         world_states: Dict[str, Any] = {}
+        clues: Dict[str, Any] = {}
 
         curr_panoid, curr_heading = self.graph_state
         target_panoid = self.target_infos[0]["panoid"]  
@@ -355,6 +454,7 @@ class BaseNavigator:
                 node_to=target_panoid, 
                 init_heading=curr_heading, 
             )
+        world_states["path_streets"] = self._query_batch_streetnames(world_states["path_nodes"])
         world_states["path_len"] = len(world_states["path_nodes"])
 
         # 2. collect global location of curr and target
@@ -379,8 +479,19 @@ class BaseNavigator:
         # 4. add target information
         world_states["target_name"] = self.target_infos[0]["name"]
 
-        return world_states
-
+        # 1. add current location clues
+        clues["curr_nearby_landmarks"] = self._query_clue(curr_coord[0], curr_coord[1], "landmarks")["landmarks"]
+        clues["curr_nearby_attractions"] = self._query_clue(curr_coord[0], curr_coord[1], "attractions")["attractions"]
+        clues["curr_nearby_neighbors"] = self._query_clue(curr_coord[0], curr_coord[1], "neighbors")["neighbors"]
+        clues["curr_street"] = self._query_clue(curr_coord[0], curr_coord[1], "street")["street"]
+        
+        # 2. add target location clues
+        clues["target_nearby_landmarks"] = self._query_clue(target_coord[0], target_coord[1], "landmarks")["landmarks"]
+        clues["target_nearby_attractions"] = self._query_clue(target_coord[0], target_coord[1], "attractions")["attractions"]
+        clues["target_nearby_neighbors"] = self._query_clue(target_coord[0], target_coord[1], "neighbors")["neighbors"]
+        clues["target_street"] = self._query_clue(target_coord[0], target_coord[1], "street")["street"]
+        
+        return world_states, clues
 
     def show_state_info(self, graph_state):
         '''Given a graph state, show current state information and available next moves.'''

@@ -1,5 +1,16 @@
+# -*- coding:utf-8 -*-
+
+import os
 import googlemaps
+import warnings
+
 from typing import Dict
+
+warnings.warn(
+    "This lib is not called in our main implementation. The real code is in qa_agents.py", 
+    ImportWarning, 
+    stacklevel=2
+)
 
 def get_info(lat: float, lng: float, info_type: str) -> Dict:
     """
@@ -14,7 +25,8 @@ def get_info(lat: float, lng: float, info_type: str) -> Dict:
         Dictionary containing requested information
     """
     try:
-        gmaps = googlemaps.Client(key="AIzaSyC04gYkv5OP4fqaKx6etfcdd6oPGELNmi8")
+        google_api_key = os.environ.get("GOOGLE_API_KEY")
+        gmaps = googlemaps.Client(key=google_api_key)
         
         if info_type == 'street':
             result = gmaps.reverse_geocode((lat, lng))
@@ -104,16 +116,16 @@ def main():
     print("\n=== 附近景点 ===")
     print(get_info(lat, lng, 'attractions'))
     
-    # 测试其他位置
-    test_coords = [
-        (40.7516, -73.9877),  # 另一个纽约位置
-        (37.7749, -122.4194)  # 旧金山
-    ]
+    # # 测试其他位置
+    # test_coords = [
+    #     (40.7516, -73.9877),  # 另一个纽约位置
+    #     (37.7749, -122.4194)  # 旧金山
+    # ]
     
-    for lat, lng in test_coords:
-        print(f"\n=== 测试坐标: {lat}, {lng} ===")
-        print("街道:", get_info(lat, lng, 'street'))
-        print("相邻建筑:", get_info(lat, lng, 'neighbors'))
+    # for lat, lng in test_coords:
+    #     print(f"\n=== 测试坐标: {lat}, {lng} ===")
+    #     print("街道:", get_info(lat, lng, 'street'))
+    #     print("相邻建筑:", get_info(lat, lng, 'neighbors'))
 
 if __name__ == "__main__":
     main()
