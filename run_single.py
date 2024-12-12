@@ -109,6 +109,12 @@ def update_current_step(current_step):
     return qa_messages, panoid, heading, message, action, log_root, agent_vis_path, vision_input_images, target1_update, target2_update, target3_update, target4_update
 
 config_root = "config"
+navi_config_root = os.path.join(config_root, "navi_config")
+vision_config_root = os.path.join(config_root, "vision_config")
+oracle_config_root = os.path.join(config_root, "qa_config")
+map_config_root = os.path.join(config_root, "map_config")
+task_config_root = os.path.join(config_root, "task_config")
+
 navigator = None
 infos_state = []
 

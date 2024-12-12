@@ -8,6 +8,7 @@ from qa_agent import Oracle
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
 from util import AgentVisualization
 from external_vision import VisionAnswering
+from evaluator import AgentEvaluator
 
 # import config.map_config as map_config
 
@@ -26,7 +27,8 @@ class Navigator(BaseNavigator):
                  config:str, 
                  oracle_config:str, 
                  answering_config:str, 
-                 map_config: str|dict, 
+                 map_config: str|dict,
+                 eval_config: str, 
                  task_config: str|dict,
                  show_info: bool=False): 
         
@@ -51,9 +53,7 @@ class Navigator(BaseNavigator):
             self.config = json.load(f)
 
         print(f"[init]Loading oracle config from {oracle_config}")
-        with open(oracle_config, 'r') as f:
-            oracle_config_data = json.load(f)
-            self.oracle = Oracle(oracle_config_data)
+        self.oracle = Oracle()
         
         print(f"[init]Loading vision config from {answering_config}")
         with open(answering_config, 'r') as f: 
@@ -64,7 +64,11 @@ class Navigator(BaseNavigator):
             self.vision_mode = self.config["vision_mode"]
         else:
             self.vision_mode = "vision_answering"
-        print(f"[init]Vision mode: {self.vision_mode}")    
+        print(f"[init]Vision mode: {self.vision_mode}")
+
+        with open(eval_config, 'r') as f:
+            eval_config_data = json.load(f)
+            self.evaluator = AgentEvaluator(eval_config_data)    
         
         control_mode = self.config['mode']
         print(f"[init]Control mode: {control_mode}")
@@ -185,7 +189,7 @@ class Navigator(BaseNavigator):
             print(f"Message: {message}")
             print(f"Image features: {image_urls}")
             print("*"*50)   
-                    
+        image_feed = []
         if mode == "poe_send_message":
             chunk = self.send_message(message=message, files=image_feed)
             action_message = chunk["text"]
@@ -278,6 +282,11 @@ class Navigator(BaseNavigator):
         
         # initial state
         step = 0
+        agent_response = []
+        world_states = self.collect_world_state()
+        shortest_path = world_states["path_action"]
+        print("Path to Target: ", world_states["path_action"])
+
         self.log_info = {'step': step, 'log_root': self.log_root}
         self.log_info["current_state"] = self.graph_state
         self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
@@ -301,10 +310,12 @@ class Navigator(BaseNavigator):
             else:
                 image_urls = self.get_image_feature(self.graph_state, mode=self.action_mode)
                 self.log_info["image_urls"] = image_urls
-                message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_6) else NAVIGATION_LVL_6[instruction_ctn])
+                message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_1) else NAVIGATION_LVL_1[instruction_ctn])
                 instruction_ctn += 1
                 action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
-                
+            
+            agent_response.append(("Context: " + message, "Agent Action: " + action_message))
+
             if 'message' not in self.log_info:
                 self.log_info['message'] = []
             self.log_info["message"].append(message)
@@ -339,12 +350,15 @@ class Navigator(BaseNavigator):
                 print(self.show_state_info(self.graph_state))
                 
             if action == 'stop' and self.check_arrival_all():
-                
+                print("DONE")
+                # world_states = self.collect_world_state()
+                self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
                 self.log_infos.append(self.log_info)
                 with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
                     json.dump(self.log_infos, f)    
                     
                 self.log_info["over"] = True
+                
                     
             yield self.log_info
         
@@ -363,17 +377,19 @@ def show_graph_info(graph):
 if __name__ == "__main__":   
 
     navi_config = r"config\human_test_navi.json"
-    # navi_config = os.path.join("config", "openai_test_navi_3.json")
+    #navi_config = os.path.join("config", "openai_test_navi_3.json")
     # navi_config = r"config\poe_test_navi.json"
     oracle_config = os.path.join("config", "human_test_oracle.json")
     vision_config = os.path.join("config", "human_test_vision.json")
     map_config = os.path.join("config", "overpass_streetmap_map.json")
+    eval_config = os.path.join("config", "evaluator.json")
     task_config = os.path.join("config", "overpass_task1.json")
 
     navigator = Navigator(config=navi_config, 
                           oracle_config=oracle_config, 
                           answering_config=vision_config, 
-                          map_config=map_config, 
+                          map_config=map_config,
+                          eval_config=eval_config, 
                           task_config=task_config,
                           show_info=True)
     task = navigator.forward()
