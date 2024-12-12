@@ -10,20 +10,23 @@ def update_config_files():
     new_navi_choices = [file.split('.')[0] for file in os.listdir(config_root) if "navi" in file]
     new_vision_choices = [file.split('.')[0] for file in os.listdir(config_root) if "vision" in file]
     new_map_choices = [file.split('.')[0] for file in os.listdir(config_root) if "map" in file]
-    new_task_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]   
-    return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_map_choices), gr.update(value=[], choices=new_task_choices)
+    new_task_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]
+    new_evaluator_choices = [file.split('.')[0] for file in os.listdir(config_root) if "evaluator" in file]   
+    return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_map_choices), gr.update(value=[], choices=new_task_choices), gr.update(value=[], choices=new_evaluator_choices)
 
-def start_navigation(navi_config, vision_config, map_config, task_config):
+def start_navigation(navi_config, vision_config, map_config, task_config, evaluator_config):
     navi_config = os.path.join(config_root, navi_config[0]+".json")
     vision_config = os.path.join(config_root, vision_config[0]+".json")
     map_config = os.path.join(config_root, map_config[0]+".json")
     task_config = os.path.join(config_root, task_config[0]+".json")
+    evaluator_config = os.path.join(config_root, evaluator_config[0]+".json")
     
     global navigator
     navigator = Navigator(config=navi_config, 
                           answering_config=vision_config, 
                           map_config=map_config,
                           task_config=task_config,
+                          eval_config=evaluator_config,
                           show_info=False)
     
     with open(navi_config, "r") as f:
@@ -128,6 +131,9 @@ map_config_selection = gr.Dropdown(value=[],label="Map Config", choices=map_conf
 task_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]
 task_config_selection = gr.Dropdown(value=[],label="Task Config", choices=task_config_choices, max_choices=1, multiselect=True, interactive=True)
     
+evaluator_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "evaluator" in file]
+evaluator_config_selection = gr.Dropdown(value=["evaluator"],label="Evaluator Config", choices=evaluator_config_choices, max_choices=1, multiselect=True, interactive=True) 
+    
 start_button = gr.Button("Start!")
 refresh_button = gr.Button("Refresh")
 last_step_button = gr.Button("Last Step")
@@ -161,6 +167,7 @@ with gr.Blocks() as demo:
         vision_config_selection.render()
         map_config_selection.render()
         task_config_selection.render()
+        evaluator_config_selection.render()
         refresh_button.render()
     with gr.Row(equal_height=True):
         start_button.render()
@@ -190,11 +197,11 @@ with gr.Blocks() as demo:
     with gr.Row():
         log_root_text.render()
         
-    refresh_button.click(fn=update_config_files, inputs=None, outputs=[navi_config_selection, vision_config_selection, map_config_selection, task_config_selection])
+    refresh_button.click(fn=update_config_files, inputs=None, outputs=[navi_config_selection, vision_config_selection, map_config_selection, task_config_selection, evaluator_config_selection])
     
     start_button.click(fn=start_navigation, 
-                       inputs=[navi_config_selection, vision_config_selection, map_config_selection, task_config_selection], 
-                       outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, map_config_selection, task_config_selection, refresh_button, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox]).then(run_navigation, inputs=None, outputs=[total_steps_num])
+                       inputs=[navi_config_selection, vision_config_selection, map_config_selection, task_config_selection, evaluator_config_selection], 
+                       outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, map_config_selection, task_config_selection, evaluator_config_selection, refresh_button, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox]).then(run_navigation, inputs=None, outputs=[total_steps_num])
     
     last_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(-1)], outputs=[current_step_num])
     next_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(1)], outputs=[current_step_num])
