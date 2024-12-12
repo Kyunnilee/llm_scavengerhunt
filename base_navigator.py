@@ -318,12 +318,15 @@ class BaseNavigator:
         '''
         Check if the navigator has arrived at the target node.
         '''
-        lat, log = self.graph.nodes[self.graph_state[0]].coordinate
+        lat, lng = self.graph.nodes[self.graph_state[0]].coordinate
         for info in self.target_infos:
             if info["status"]:
                 continue
-            target_lat, target_log = self.graph.nodes[info["panoid"]].coordinate
-            distance = ((lat - target_lat) ** 2 + (log - target_log) ** 2) ** 0.5 # same in `target_finder.py`
+            target_lat, target_lng = self.graph.nodes[info["panoid"]].coordinate
+            distance = haversine(
+                coord1=(lat, lng), 
+                coord2=(target_lat, target_lng)
+            ) # This is distance (unit: meters) between curr and target
             
             if distance < self.arrive_threshold:
                 info["status"] = True
