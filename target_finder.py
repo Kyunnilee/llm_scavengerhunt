@@ -6,14 +6,14 @@ from typing import List, Set, Dict, Tuple
 import math
 
 # Configuration parameters
-INITIAL_LATITUDE = 37.7805979
-INITIAL_LONGITUDE = -122.417003
+INITIAL_LATITUDE = 40.742253
+INITIAL_LONGITUDE = -73.991273
 SEARCH_RADIUS = 1000  # in meters
-LANDMARK_KEYWORDS = ["landmark", "shopping mall", "tourist attraction"]
+LANDMARK_KEYWORDS = ["Mcdonald"]
 NUM_TARGET_NODES = 1  # number of closest nodes to target to be considered as endpoints
 GOOGLE_API_KEY = "AIzaSyC04gYkv5OP4fqaKx6etfcdd6oPGELNmi8"
-NODE_FILE = r'output/overpass_streetmap/touchdown/nodes.txt'
-LINK_FILE = r'output/overpass_streetmap/touchdown/links.txt'
+NODE_FILE = r'touchdown/graph/nodes.txt'
+LINK_FILE = r'touchdown/graph/links.txt'
 OUTPUT_FILE = "output/possible_starts.json"
 
 class Node:
