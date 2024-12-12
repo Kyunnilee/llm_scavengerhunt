@@ -73,8 +73,9 @@ class Oracle():
             answer = input("Enter the answer: ")
         
         elif self.model.startswith("gpt-"):
+            print("[[Logs]]: QA System evaluating question...")
             question_detail_level = self._eval_question(question)
-            print(f"[[Logs]]: question detail level evaluated as level [{question_detail_level}]")
+            print(f"[[Logs]]: Question detail level evaluated as level [{question_detail_level}]")
             if question_detail_level is None:
                 path_description = "Not provided for this question"
             else:
@@ -82,10 +83,11 @@ class Oracle():
                     path=self.latest_world_states["path_action"], 
                     detail_level=question_detail_level
                 )
-                print(f"path description generated")
+                print(f"[[Logs]]: Path description generated")
             
             qa_prompt = openai_oracle.qa_final_prompt
 
+            qa_prompt = qa_prompt.replace("<<<target_name>>>", self.latest_world_states["target_name"])
             qa_prompt = qa_prompt.replace("<<<abs_target_pos>>>", str(self.latest_world_states["abs_target_pos"]))
             qa_prompt = qa_prompt.replace("<<<abs_target_dir>>>", self.latest_world_states["abs_target_dir"])
             qa_prompt = qa_prompt.replace("<<<abs_curr_pos>>>", str(self.latest_world_states["abs_curr_pos"]))
@@ -97,13 +99,16 @@ class Oracle():
             qa_prompt = qa_prompt.replace("<<<Testing_Agent_Question>>>", question)
 
             answer = self.qa_agent.send_message(qa_prompt)
+            print("[[Logs]]: Answer generated. Returning to testing agent...")
 
         return answer
 
     def _eval_question(self, question):
         eval_prompt = openai_oracle.eval_final_prompt
         eval_prompt = eval_prompt.replace("<<<evaled_question>>>", question)
+        print(f"[[Logs]]: Msg sent to openai. Waiting response...")
         answer = self.eval_agent.send_message(eval_prompt)
+        print(f"[[Logs]]: Got response from openai. Parsing...")
 
         if "Irrelevant" in answer:
             return None

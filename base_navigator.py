@@ -7,7 +7,6 @@ import os
 
 turn_around_angle_limit = 60
 forward_angle_limit = 90
-# TURN_AROUND_RANGE = range(int(180-turn_around_angle_limit/2), 180+1)
 
 FORWARD_RANGE = range(0, int(forward_angle_limit/2))
 TURN_AROUND_RANGE = range(0, int(turn_around_angle_limit/2 + 1))
@@ -28,21 +27,6 @@ class BaseNavigator:
             info["status"] = False
         self.arrive_threshold: int = task_config["arrive_threshold"]
 
-        # TODO: 
-        # 1. 重构代码：BaseNavigator 区分 graph cfg 和 task cfg
-        #    why? 因为 collect world state 定义在 base 里面
-        #    所以必须要知道 task cfg （比如 target）
-        #    这部分可能会改变 Navigator.__init__ 的函数定义
-        #    从而导致 gradio 那边出问题，所以 Tabi 写一下
-        # 2. Add self.target, type: panoid (str)
-        #    Additional: Can Tabi visualize target node (e.g. blue mark?)
-        # 3. Add self.get_clue IN NAVIGATOR(NOT BASE), type: func, (curr_state -> str)
-        #    This is additional clue, excluded from some standard world states
-        #    明天需要讨论一下需要哪些 clue，以及确定一些工程问题（例如 class 的具体成员变量，函数等等）
-        # 4. Merge QA_Agent and Oracle (By simonxie); 
-        #    Also, rewrite some new prompt 
-        #    (due to some idea & structural change)
-
     def navigate(self):
         raise NotImplementedError
 
@@ -57,8 +41,6 @@ class BaseNavigator:
                 return f'Arrived at target {info["name"]}, place: {info["panoid"]}.'
             else:
                 return 'Not arrived yet.'
-        
-        
         
         available_actions, _ = self.get_available_next_moves(self.graph_state)
         if action not in available_actions:
@@ -133,7 +115,6 @@ class BaseNavigator:
             raise ValueError('Invalid action.')
         return diff_func
         
-    
     def _get_nearest_heading(self, curr_state, next_node, go_towards, start=False):
         _, curr_heading = curr_state
         next_heading = None
@@ -286,7 +267,6 @@ class BaseNavigator:
         
         raise ValueError(f"Cant calculate action from node {panoid_from} to {panoid_to}")
 
-
     def _get_correct_action_sequence(self, node_from, node_to, init_heading):
         """
         Gets action sequence from given path.
@@ -383,6 +363,9 @@ class BaseNavigator:
             target_coord=curr_coord, 
             heading=curr_heading, 
         )
+
+        # 4. add target information
+        world_states["target_name"] = self.target_infos[0]["name"]
 
         return world_states
 

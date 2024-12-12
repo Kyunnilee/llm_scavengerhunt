@@ -31,8 +31,11 @@ qa_final_prompt = qa_init_prompt + \
 Here is the world states provided. Please generate a proper answer to the testing agent.
 
 [World States Provided as Follows:]
-The target's exact latitude and longtitude is: <<<abs_target_pos>>>
-The absolute location of the target position is: at the <<<abs_target_dir>>> of the current map.
+The testing agent's target is <<<target_name>>>. 
+This means that the testing agent is heading torwards <<<target_name>>>, and he must get there to win the game.
+
+The target (<<<target_name>>>)'s exact latitude and longtitude is: <<<abs_target_pos>>>
+The absolute location of the target (<<<target_name>>>) is: at the <<<abs_target_dir>>> of the current map.
 
 The current exact latitude and longtitude is: <<<abs_curr_pos>>>
 The absolute location of the current position is: at the <<<abs_curr_dir>>> of the current map.
@@ -82,6 +85,7 @@ Final Evaluation: After reviewing the question, assign a score based on the scal
 3. Poor = 1
 
 Please provide your justifying reasons in the first line, followed by a single score (1-3) on the second line.
+Pay special attention that you should make your reasons short.
 """
 
 eval_final_prompt = eval_init_prompt + \
