@@ -2,9 +2,16 @@ from openai import OpenAI
 import os
 import json
 import ast
+import re
 
 api_key=os.environ.get("OPENAI_API_KEY")
 TODO = ""
+
+def extract_tuples(result: str):
+        tuples = re.findall(r'\((\d+),\s*\'(.*?)\'\)', result)
+        elements = [item for t in tuples for item in t]
+        return elements
+    
 class AgentEvaluator:
     def __init__(self, config): 
         self.client = OpenAI(api_key=api_key)
@@ -50,7 +57,13 @@ class AgentEvaluator:
             messages=full_message,
             max_tokens=300
         )
-        result = ast.literal_eval(scores.choices[0].message.content)
+        try:
+            result = ast.literal_eval(scores.choices[0].message.content)
+        except:
+            print("Evaluation parse error, using string extraction")
+            result = scores.choices[0].message.content
+            result = extract_tuples(result)
+            result = ((result[0], result[1]), (result[2], result[3]))
         print("Evaluation Results: ", result)
         print(type(result))
         return result

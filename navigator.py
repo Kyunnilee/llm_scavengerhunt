@@ -1,30 +1,48 @@
 # -*- coding:utf-8 -*-
 
-from base_navigator import BaseNavigator
-from graph_loader import get_street_view_image_url
-
-from testing_agents.openai_agent import OpenAIAgent
-from testing_agents.poe_agent import PoeAgent
-from testing_agents.anthropic_agent import AnthropicAgent
-# from testing_agents.gemini_agent import GeminiAgent
-from testing_agents.mistral_agent import MistralaiAgent
-from qa_agent import Oracle
-
-from external_vision_agent import VisionAnswering
-from evaluator_agent import AgentEvaluator
-
-from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
-from util import AgentVisualization
-
 import os 
 import re
 import json
 import time
 import argparse
 
+from base_navigator import BaseNavigator
+from graph_loader import get_street_view_image_url
+
+from oracle import Oracle
+from external_vision import VisionAnswering
+from evaluator import AgentEvaluator
+
+from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
+from util.visualize_map import AgentVisualization
+
+try:
+    from testing_agents.openai_agent import OpenAIAgent
+except ImportError:
+    print("OpenAI agent is not available in your environment. Not importing OpenAIAgent.")
+
+try:
+    from testing_agents.poe_agent import PoeAgent
+except ImportError:
+    print("Poe agent is not available in your environment. Not importing PoeAgent.")
+
+try:
+    from testing_agents.anthropic_agent import AnthropicAgent
+except ImportError:
+    print("Anthropic agent is not available in your environment. Not importing AnthropicAgent.")
+
+try:
+    from testing_agents.gemini_agent import GeminiAgent
+except ImportError:
+    print("Gemini agent is not available in your environment. Not importing GeminiAgent.")
+
+try:
+    from testing_agents.mistral_agent import MistralaiAgent
+except ImportError:
+    print("Mistralai agent is not available in your environment. Not importing MistralaiAgent.")
+
 api_key = os.environ.get('GOOGLE_API_KEY')
 base_dir = os.getcwd() # Get cwd current working directory
-
 
 class Navigator(BaseNavigator):
     
@@ -34,7 +52,8 @@ class Navigator(BaseNavigator):
                  map_config: str|dict,
                  eval_config: str, 
                  task_config: str|dict,
-                 show_info: bool=False): 
+                 show_info: bool=False,
+                 output_path: str='output'): 
         
         if isinstance(map_config, dict):
             map_config_data = map_config
@@ -55,7 +74,8 @@ class Navigator(BaseNavigator):
         print(f"[init]Loading config from {config}")
         with open(config, 'r') as f:
             self.config = json.load(f)
-            
+          
+        # insert target names into policy    
         target_names = [info["name"] for info in task_config_data["target_infos"]]
         target_names = ", ".join(target_names)
         self.config["policy"] = self.config["policy"].replace("<<<target_name>>>", target_names)
@@ -105,10 +125,10 @@ class Navigator(BaseNavigator):
             self.log_root = map_config_data['log_root']
         else:
             log_dir_name = f"{time.strftime('%Y%m%d-%H%M%S')}_logs"
-            self.log_root = os.path.join('output', 'logs', log_dir_name)
+            self.log_root = os.path.join(output_path, 'logs', log_dir_name)
         os.makedirs(self.log_root, exist_ok=True)    
         
-        self.log_infos = []
+        self.log_infos = [{"config": config, "map_config": map_config_data, "task_config": task_config_data}]
         self.show_info = show_info # show visualization and info in console
             
         vis_silent = False if show_info else True
@@ -356,10 +376,14 @@ class Navigator(BaseNavigator):
             # if achive all target or reach max step, end the navigation
             if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
                 print("DONE")
-                self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
+                (num_question, num_steps, action_score, question_score) = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
                 
                 # TODO: add other log info here
                 self.log_info["arrival_info"] = self.collect_arrival_info()
+                self.log_info["metrics"] = {"num_question": num_question, 
+                                            "num_steps": num_steps, 
+                                            "action_score": action_score, 
+                                            "question_score": question_score}
                 
                 self.log_infos.append(self.log_info)
                 with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
@@ -379,8 +403,7 @@ def show_graph_info(graph):
             max_neighbors = neighbors_num
             max_neighbors_node = node
     print(f"Max neighbors: {max_neighbors}, node: {max_neighbors_node.panoid}")
-            
-            
+
 def main(args):
     navi_config = os.path.join("config", "navi", args.navi) \
         if args.navi else os.path.join("config", "navi", "human_test_navi.json")
@@ -392,12 +415,14 @@ def main(args):
         if args.eval else os.path.join("config", "eval", "evaluator.json")
     task_config = os.path.join("config", "task", args.task) \
         if args.task else os.path.join("config", "task", "overpass_task1.json")
+    output_path = args.output
 
     navigator = Navigator(config=navi_config, 
                           answering_config=vision_config, 
                           map_config=map_config,
                           eval_config=eval_config, 
                           task_config=task_config,
+                          output_path=output_path,
                           show_info=True)
 
     task = navigator.forward()
@@ -409,6 +434,7 @@ def main(args):
         if info.get("over", False):
             break
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="All navigation configs")
 
@@ -417,9 +443,8 @@ if __name__ == "__main__":
     parser.add_argument('--map', type=str, help='Map config in config/map/*.json')
     parser.add_argument('--eval', type=str, help='Eval config in config/eval/*.json')
     parser.add_argument('--task', type=str, help='Task config in config/task/*.json')
+    parser.add_argument('--output', type=str, default='output', help='Output path; Default to output/')
 
     args = parser.parse_args()
 
     main(args)
-        
-    

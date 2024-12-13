@@ -172,11 +172,11 @@ class Oracle():
 
     def _parse_nearby_objects(self, objects):
         if isinstance(objects, dict):
-            return f"- name: {objects["name"]}, address: {objects["address"]}"
+            return f"- name: {objects['name']}, address: {objects['address']}"
         elif isinstance(objects, list):
             result = ""
             for obj in objects:
-                result += f"- name: {obj["name"]}, address: {obj["address"]}\n"
+                result += f"- name: {obj['name']}, address: {obj['address']}\n"
             return result
         elif isinstance(objects, str):
             return objects
