@@ -5,7 +5,7 @@ from map import get_street_view_image_url
 from openai_agent import OpenAIAgent
 from poe_agent import PoeAgent
 from anthropic_agent import AnthropicAgent
-# from gemini_agent import GeminiAgent
+from gemini_agent import GeminiAgent
 from mistral_agent import MistralaiAgent
 from qa_agent import Oracle
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
@@ -32,7 +32,8 @@ class Navigator(BaseNavigator):
                  map_config: str|dict,
                  eval_config: str, 
                  task_config: str|dict,
-                 show_info: bool=False): 
+                 show_info: bool=False,
+                 out_path: str='output'): 
         
         if isinstance(map_config, dict):
             map_config_data = map_config
@@ -53,7 +54,8 @@ class Navigator(BaseNavigator):
         print(f"[init]Loading config from {config}")
         with open(config, 'r') as f:
             self.config = json.load(f)
-            
+          
+        # insert target names into policy    
         target_names = [info["name"] for info in task_config_data["target_infos"]]
         target_names = ", ".join(target_names)
         self.config["policy"] = self.config["policy"].replace("<<<target_name>>>", target_names)
@@ -103,10 +105,10 @@ class Navigator(BaseNavigator):
             self.log_root = map_config_data['log_root']
         else:
             log_dir_name = f"{time.strftime('%Y%m%d-%H%M%S')}_logs"
-            self.log_root = os.path.join('output', 'logs', log_dir_name)
+            self.log_root = os.path.join(out_path, 'logs', log_dir_name)
         os.makedirs(self.log_root, exist_ok=True)    
         
-        self.log_infos = []
+        self.log_infos = [{"config": config, "map_config": map_config_data, "task_config": task_config_data}]
         self.show_info = show_info # show visualization and info in console
             
         vis_silent = False if show_info else True
@@ -354,10 +356,14 @@ class Navigator(BaseNavigator):
             # if achive all target or reach max step, end the navigation
             if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
                 print("DONE")
-                self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
+                (num_question, num_steps, action_score, question_score) = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
                 
                 # TODO: add other log info here
                 self.log_info["arrival_info"] = self.collect_arrival_info()
+                self.log_info["metrics"] = {"num_question": num_question, 
+                                            "num_steps": num_steps, 
+                                            "action_score": action_score, 
+                                            "question_score": question_score}
                 
                 self.log_infos.append(self.log_info)
                 with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
