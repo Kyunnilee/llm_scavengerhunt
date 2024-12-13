@@ -7,10 +7,39 @@ import re
 api_key=os.environ.get("OPENAI_API_KEY")
 TODO = ""
 
-def extract_tuples(result: str):
-        tuples = re.findall(r'\((\d+),\s*\'(.*?)\'\)', result)
-        elements = [item for t in tuples for item in t]
-        return elements
+def extract_scores(text: str):
+    
+    action_score_pattern = r"\[action_reasoning_score\](.*?)\[action_reasoning_score_end\]"
+    action_justification_pattern = r"\[action_reasoning_score_justification\](.*?)\[action_reasoning_score_justification_end\]"
+    
+    question_score_pattern = r"\[question_score\](.*?)\[question_score_end\]"
+    question_justification_pattern = r"\[question_score_justification\](.*?)\[question_score_justification_end\]"
+
+    action_score = re.search(action_score_pattern, text)
+    if action_score:
+        action_score = action_score.group(1).strip()
+    else:
+        action_score = text
+    
+    action_justification = re.search(action_justification_pattern, text)
+    if action_justification:
+        action_justification = action_justification.group(1).strip()
+    else:
+        action_justification = text
+        
+    question_score = re.search(question_score_pattern, text)
+    if question_score:
+        question_score = question_score.group(1).strip()
+    else:
+        question_score = text
+        
+    question_justification = re.search(question_justification_pattern, text)
+    if question_justification:
+        question_justification = question_justification.group(1).strip()
+    else:
+        question_justification = text
+        
+    return (action_score, action_justification), (question_score, question_justification)
     
 class AgentEvaluator:
     def __init__(self, config): 
@@ -57,13 +86,10 @@ class AgentEvaluator:
             messages=full_message,
             max_tokens=300
         )
-        try:
-            result = ast.literal_eval(scores.choices[0].message.content)
-        except:
-            print("Evaluation parse error, using string extraction")
-            result = scores.choices[0].message.content
-            result = extract_tuples(result)
-            result = ((result[0], result[1]), (result[2], result[3]))
+        
+        result_text = scores.choices[0].message.content
+        result_group = extract_scores(result_text)
+        result = result_group
         print("Evaluation Results: ", result)
         print(type(result))
         return result
@@ -124,16 +150,18 @@ actions_rubric = "Actions Taken: \nHallucination: Are the agent's actions comple
 questions_rubric = "Questions Asked: Evaluations are based on the quality of questions asked by the agent when it is lost. Total score for question is calculated as ([proactive] + [clarification])/2: [Proactive]: Does the agent ask good proactive questions to gather hints for the next step? 5: The agent consistently asks insightful proactive questions that are relevant and useful. 4: The agent asks proactive questions that are generally relevant but could be more relevant and useful. 3: The agent occasionally asks proactive questions, but they often miss the mark or are too generic. 2: The agent rarely asks proactive questions, and when they do, they are not relevant or useful. 1: The agent does not ask any proactive questions to gather hints for the next step. [Clarification]: Does the agent ask clarification questions if the answer received is vague? 5: The agent always asks for clarifications when responses are vague, ensuring complete understanding for the next step. 4: The agent usually asks for clarifications on vague responses, but may miss some opportunities. 3: The agent sometimes asks for clarifications, but often proceeds without full clarity. 2: The agent rarely seeks clarifications, leading to misunderstandings or incomplete information. 1: The agent never asks for clarifications, even if the answer it received contains little to no relevant or actionable information. Note that if the agent did not need to ask any clarification questions because the answers it received was clear, you should give it the same grade for [Clarification] that you gave for [Proactive] and indicate this in your justification."
 
 if __name__=="__main__": 
-    test_prompt = """You are a helpful assistant rating the reasoning and actions of an llm agent trying to navigate to a certain location. You will be given the response history of the agent in the form a stringified list of pairs. Each pair will contain the context that the agent was given and action that it took. You are to evaluate two aspects of the response on a score ranging from 1-5: the quality of reasoning when the agent chooses an action and the quality of questions that the agent asks if it is lost. IMPORTANT NOTE: when you evaluate the quality of questions, you are grading the questions themselves. Whether the question was needed or not will be graded when accessing the first score(quality of reasoning). If the response contains no questions, you should make the question quality score a -1. Here are the rubrics for grading the agent's action reasoning and questions: """ + actions_rubric + questions_rubric + "Your response should be two pairs in the following format: (action_reasoning_score, justification_for_score), (question_score, justification_for_score). Example: (5, JUSTIFICATION_HERE), (3, JUSTIFICATION_HERE). Make sure that any inner quotes are properly escaped."
-    test_config = {
-        'system_prompt': test_prompt, 
-        'model': 'gpt-4o-mini' 
-    }
+    # test_prompt = """You are a helpful assistant rating the reasoning and actions of an llm agent trying to navigate to a certain location. You will be given the response history of the agent in the form a stringified list of pairs. Each pair will contain the context that the agent was given and action that it took. You are to evaluate two aspects of the response on a score ranging from 1-5: the quality of reasoning when the agent chooses an action and the quality of questions that the agent asks if it is lost. IMPORTANT NOTE: when you evaluate the quality of questions, you are grading the questions themselves. Whether the question was needed or not will be graded when accessing the first score(quality of reasoning). If the response contains no questions, you should make the question quality score a -1. Here are the rubrics for grading the agent's action reasoning and questions: """ + actions_rubric + questions_rubric + "Your response should be two pairs in the following format: (action_reasoning_score, justification_for_score), (question_score, justification_for_score). Example: (5, JUSTIFICATION_HERE), (3, JUSTIFICATION_HERE). Make sure that any inner quotes are properly escaped."
+    # test_config = {
+    #     'system_prompt': test_prompt, 
+    #     'model': 'gpt-4o-mini' 
+    # }
 
-    with open("evaluator.json", "w") as json_file:
-        json.dump(test_config, json_file, indent=4)
+    # with open("evaluator.json", "w") as json_file:
+    #     json.dump(test_config, json_file, indent=4)
 
-    sample_response = [("Context: You are currently at 37.7803403, -122.4180816 facing 82.663787322416.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889690', 82.663787322416)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('3999644793', 82.6656211991133)\nAction: right, heading: 148.968704267527\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will make your heading around 149", 'Agent Action: right'), ("Context: You are currently at 37.7803403, -122.4180816 facing 148.968704267527.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889690', 148.968704267527)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889698', 140.44581646108813)\nAction: left, heading: 82.663787322416\nAction: right, heading: -97.13931973253575\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will get you to the graph state: ('4018889698', 140.44581646108813)", 'Agent Action: forward'), ("Context: You are currently at 37.7803029, -122.4180591 facing 140.44581646108813.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889698', 140.44581646108813)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889725', 128.2695160626994)\nAction: turn_around, heading: -31.031295732473033\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will get you to the graph state: ('4018889725', 128.2695160626994)", 'Agent Action: forward'), ("Context: You are currently at 37.7802759, -122.4180368 facing 128.2695160626994.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889725', 128.2695160626994)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889735', 112.96833410760605)\nAction: turn_around, heading: -39.554183538911886\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will get you to the graph state: ('4018889735', 112.96833410760605)", 'Agent Action: forward'), ("Context: You are currently at 37.7802546, -122.4180098 facing 112.96833410760605.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889735', 112.96833410760605)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('298077885', 102.4433342028448)\nAction: turn_around, heading: -51.730483937300605\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will make your heading = -51.730483937300605", 'Agent Action: turn_around'), ("Context: You are currently at 37.7802546, -122.4180098 facing -51.730483937300605.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889735', -51.730483937300605)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889725', -39.554183538911886)\nAction: turn_around, heading: 112.96833410760605\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option stop", 'Agent Action: stop')]
+    # sample_response = [("Context: You are currently at 37.7803403, -122.4180816 facing 82.663787322416.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889690', 82.663787322416)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('3999644793', 82.6656211991133)\nAction: right, heading: 148.968704267527\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will make your heading around 149", 'Agent Action: right'), ("Context: You are currently at 37.7803403, -122.4180816 facing 148.968704267527.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889690', 148.968704267527)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889698', 140.44581646108813)\nAction: left, heading: 82.663787322416\nAction: right, heading: -97.13931973253575\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will get you to the graph state: ('4018889698', 140.44581646108813)", 'Agent Action: forward'), ("Context: You are currently at 37.7803029, -122.4180591 facing 140.44581646108813.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889698', 140.44581646108813)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889725', 128.2695160626994)\nAction: turn_around, heading: -31.031295732473033\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will get you to the graph state: ('4018889725', 128.2695160626994)", 'Agent Action: forward'), ("Context: You are currently at 37.7802759, -122.4180368 facing 128.2695160626994.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889725', 128.2695160626994)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889735', 112.96833410760605)\nAction: turn_around, heading: -39.554183538911886\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will get you to the graph state: ('4018889735', 112.96833410760605)", 'Agent Action: forward'), ("Context: You are currently at 37.7802546, -122.4180098 facing 112.96833410760605.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889735', 112.96833410760605)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('298077885', 102.4433342028448)\nAction: turn_around, heading: -51.730483937300605\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option that will make your heading = -51.730483937300605", 'Agent Action: turn_around'), ("Context: You are currently at 37.7802546, -122.4180098 facing -51.730483937300605.The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images.\nYou can take following action: Current graph state: ('4018889735', -51.730483937300605)\nAvailable next actions and graph states:\nAction: forward, to graph state: ('4018889725', -39.554183538911886)\nAction: turn_around, heading: 112.96833410760605\nAction: ask, ask for help.\nAction: stop, end the navigation.\nChoose the option stop", 'Agent Action: stop')]
 
-    evaluator = AgentEvaluator(test_config)
-    evaluator.calculate_score(sample_response, 1, debug=True)
+    # evaluator = AgentEvaluator(test_config)
+    # evaluator.calculate_score(sample_response, 1, debug=True)
+    text = "[action_reasoning_score] 5 [action_reasoning_score_end], \n[action_reasoning_score_justification] The agent consistently chooses the \"forward\" action based on the context provided, which consistently matches the available actions and leads to the next designated coordinates. There are no unreasonable assumptions or hallucinations; all decisions are logically supported by the given information. [action_reasoning_score_justification_end], \n[question_score] 1 [question_score_end], \n[question_score_ justification] The agent did not ask any questions throughout the navigation process, despite the potential to do so when it reached each decision point. This lack of inquiry indicates an absence of recognizing when additional information could be necessary, thereby demonstrating overly self-assured reasoning without the checks of asking for clarification or assistance. [question_score_ justification_end]"
+    print(extract_scores(text))

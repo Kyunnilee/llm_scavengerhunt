@@ -342,7 +342,7 @@ class Navigator(BaseNavigator):
                 instruction_ctn += 1
                 action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
             
-            agent_response.append(("Context: " + message, "Agent Action: " + action_message))
+            agent_response.append(("Context: " + message, "Agent Action: " + action, "Agent Response: " + action_message))
 
             if 'message' not in self.log_info:
                 self.log_info['message'] = []

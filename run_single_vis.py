@@ -7,19 +7,24 @@ import sys
 import json
 
 def update_config_files():
-    new_navi_choices = [file.split('.')[0] for file in os.listdir(config_root) if "navi" in file]
-    new_vision_choices = [file.split('.')[0] for file in os.listdir(config_root) if "vision" in file]
-    new_map_choices = [file.split('.')[0] for file in os.listdir(config_root) if "map" in file]
-    new_task_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]
-    new_evaluator_choices = [file.split('.')[0] for file in os.listdir(config_root) if "evaluator" in file]   
+    new_navi_choices = [file for file in os.listdir(navi_config_root) if "navi" in file]
+    new_vision_choices = [file for file in os.listdir(vision_config_root) if "vision" in file]
+    new_map_choices = [file for file in os.listdir(map_config_root) if "map" in file]
+    new_task_choices = []
+    for root, dirs, files in os.walk(task_config_root):
+        for file in files:
+            if "task" in file and file.endswith(".json"):
+                task_path = os.path.join(root, file)
+                new_task_choices.append(task_path)
+    new_evaluator_choices = [file for file in os.listdir(evaluator_config_root) if "evaluator" in file]   
     return gr.update(value=[], choices=new_navi_choices), gr.update(value=[], choices=new_vision_choices), gr.update(value=[], choices=new_map_choices), gr.update(value=[], choices=new_task_choices), gr.update(value=[], choices=new_evaluator_choices)
 
 def start_navigation(navi_config, vision_config, map_config, task_config, evaluator_config):
-    navi_config = os.path.join(config_root, navi_config[0]+".json")
-    vision_config = os.path.join(config_root, vision_config[0]+".json")
-    map_config = os.path.join(config_root, map_config[0]+".json")
-    task_config = os.path.join(config_root, task_config[0]+".json")
-    evaluator_config = os.path.join(config_root, evaluator_config[0]+".json")
+    navi_config = os.path.join(navi_config_root, navi_config[0])
+    vision_config = os.path.join(vision_config_root, vision_config[0])
+    map_config = os.path.join(map_config_root, map_config[0])
+    task_config = task_config[0]
+    evaluator_config = os.path.join(evaluator_config_root, evaluator_config[0])
     
     global navigator
     navigator = Navigator(config=navi_config, 
@@ -107,30 +112,36 @@ def update_current_step(current_step):
     return qa_messages, panoid, heading, message, action, log_root, agent_vis_path, vision_input_images, target1_update, target2_update, target3_update, target4_update
 
 config_root = "config"
-navi_config_root = os.path.join(config_root, "navi_config")
-vision_config_root = os.path.join(config_root, "vision_config")
-map_config_root = os.path.join(config_root, "map_config")
-task_config_root = os.path.join(config_root, "task_config")
+navi_config_root = os.path.join(config_root, "navi")
+vision_config_root = os.path.join(config_root, "vision")
+map_config_root = os.path.join(config_root, "map")
+task_config_root = os.path.join(config_root, "task")
+evaluator_config_root = os.path.join(config_root, "eval")
 
 navigator = None
 infos_state = []
 
 auto_update_state = gr.State(value=True)
 
-navi_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "navi" in file]
+navi_config_choices = [file for file in os.listdir(navi_config_root) if "navi" in file]
 navi_config_selection = gr.Dropdown(value=[],label="Navigator Config", choices=navi_config_choices, max_choices=1, multiselect=True, interactive=True)
 
-vision_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "vision" in file]
+vision_config_choices = [file for file in os.listdir(vision_config_root) if "vision" in file]
 vision_config_selection = gr.Dropdown(value=[],label="Vision Config", choices=vision_config_choices, max_choices=1, multiselect=True, interactive=True)
 
-map_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "map" in file]
+map_config_choices = [file for file in os.listdir(map_config_root) if "map" in file]
 map_config_selection = gr.Dropdown(value=[],label="Map Config", choices=map_config_choices, max_choices=1, multiselect=True, interactive=True)
 
-task_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "task" in file]
+task_config_choices = []
+for root, dirs, files in os.walk(task_config_root):
+    for file in files:
+        if "task" in file and file.endswith(".json"):
+            task_path = os.path.join(root, file)
+            task_config_choices.append(task_path)
 task_config_selection = gr.Dropdown(value=[],label="Task Config", choices=task_config_choices, max_choices=1, multiselect=True, interactive=True)
     
-evaluator_config_choices = [file.split('.')[0] for file in os.listdir(config_root) if "evaluator" in file]
-evaluator_config_selection = gr.Dropdown(value=["evaluator"],label="Evaluator Config", choices=evaluator_config_choices, max_choices=1, multiselect=True, interactive=True) 
+evaluator_config_choices = [file for file in os.listdir(evaluator_config_root) if "evaluator" in file]
+evaluator_config_selection = gr.Dropdown(value=["evaluator.json"],label="Evaluator Config", choices=evaluator_config_choices, max_choices=1, multiselect=True, interactive=True) 
     
 start_button = gr.Button("Start!")
 refresh_button = gr.Button("Refresh")
