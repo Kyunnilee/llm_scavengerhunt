@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from typing import *
-from google_street import get_street_view_metadata
+from tools.google_street import get_street_view_metadata
 from tqdm import tqdm
 
 import requests

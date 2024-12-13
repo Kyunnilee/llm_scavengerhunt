@@ -1,17 +1,20 @@
 # -*- coding:utf-8 -*-
 
 from base_navigator import BaseNavigator
-from map import get_street_view_image_url
-from openai_agent import OpenAIAgent
-from poe_agent import PoeAgent
-from anthropic_agent import AnthropicAgent
-# from gemini_agent import GeminiAgent
-from mistral_agent import MistralaiAgent
+from graph_loader import get_street_view_image_url
+
+from testing_agents.openai_agent import OpenAIAgent
+from testing_agents.poe_agent import PoeAgent
+from testing_agents.anthropic_agent import AnthropicAgent
+# from testing_agents.gemini_agent import GeminiAgent
+from testing_agents.mistral_agent import MistralaiAgent
 from qa_agent import Oracle
+
+from external_vision_agent import VisionAnswering
+from evaluator_agent import AgentEvaluator
+
 from prompts.prompts import NAVIGATION_LVL_1, NAVIGATION_LVL_2, NAVIGATION_LVL_6
 from util import AgentVisualization
-from external_vision import VisionAnswering
-from evaluator import AgentEvaluator
 
 import os 
 import re

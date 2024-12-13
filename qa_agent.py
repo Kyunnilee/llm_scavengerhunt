@@ -3,7 +3,7 @@
 import re
 
 import config.oracle.openai_oracle as openai_oracle
-from openai_agent import OpenAIAgent
+from testing_agents.openai_agent import OpenAIAgent
 
 class Oracle(): 
     def __init__(self): 
