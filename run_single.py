@@ -1,4 +1,4 @@
-from poe_navigator import Navigator
+from navigator import Navigator
 import gradio as gr
 from gradio import ChatMessage
 import matplotlib.pyplot as plt

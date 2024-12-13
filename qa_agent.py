@@ -2,7 +2,7 @@
 
 import re
 
-import config.openai_oracle as openai_oracle
+import config.oracle.openai_oracle as openai_oracle
 from openai_agent import OpenAIAgent
 
 class Oracle(): 
