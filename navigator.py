@@ -343,7 +343,6 @@ class Navigator(BaseNavigator):
                 image_urls = self.get_image_feature(self.graph_state)
                 self.log_info["image_urls"] = image_urls
                 message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_1) else NAVIGATION_LVL_1[instruction_ctn])
-                message += "\n" + "describe the images above first."
                 instruction_ctn += 1
                 action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
             
