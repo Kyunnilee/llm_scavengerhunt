@@ -270,20 +270,20 @@ Please pay SPECIAL ATTENTION to make the text detailed and clear. Here is an exa
 
 Our input: 
 At \"Bancoft Street\"
-Action: Forward"
+Action: Forward"; Nearby Subway: Downtown Berkeley
 Action: Forward.
 Action: Forward.
 Action: Turn Right.
 Action: Turn Right.
 Action: Forward. 
 At: \"Shuttuck Avenue\"
-Action: Forward.
+Action: Forward. 
 Action: Stop.
 
 Your output should look like: 
-You are at \"Bancoft Street\" now. Start by moving forward for three steps. "
+You are at \"Bancoft Street\" now. Start by moving forward for three steps. You should see a subway station named Downtown Berkeley on your way."
 Next, you will reach the intersection of \"Bancoft Street\" and \"Shuttuck Avenue\". "
-Turn right TWICE at this point. This will orient you properly at the intersection. Afterward, proceed forward for two more steps. "
+Turn right TWICE at this point. This will orient you properly at the intersection. Afterward, proceed forward for one more step."
 You will arrive at your target. Use action \"Stop\" once you reach it."
 
 Now the real input is: 

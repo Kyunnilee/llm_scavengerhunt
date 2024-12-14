@@ -67,11 +67,7 @@ class Oracle():
             if question_detail_level is None:
                 path_description = "Not provided for this question"
             else:
-                path_description = self._translate_path(
-                    path=self.latest_world_states["path_action"],
-                    streets=self.latest_world_states["path_streets"], 
-                    detail_level=question_detail_level
-                )
+                path_description = self._translate_path(detail_level=question_detail_level)
                 print(f"[[Logs]]: Path description generated")
             
             qa_prompt = openai_oracle.qa_final_prompt
@@ -121,27 +117,28 @@ class Oracle():
         else:
             return self._parse_score(answer)
 
-    def _translate_path(self, 
-                        path: list[str], 
-                        streets: list[str], 
-                        detail_level: int):
+    def _translate_path(self, detail_level: int):
         """
         Assumes detail_level: int in [1, 3], valid levels.
         Returns translated path (from list[str] to human friendly text)
         """
+        path = self.latest_world_states["path_action"]
+        subways = self.latest_world_states["path_subways"]
+        streets = self.latest_world_states["path_streets"]
+
         input_message = openai_oracle.path_translate_prompts[f"level_{detail_level}"]
         if detail_level == 1:
             input_message = input_message.replace("<<<rel_target_pos>>>", self.latest_world_states["rel_target_pos"])
         elif detail_level in [2, 3]:
             path_text = ""
-            curr_street_idx = 0
+            curr_panoid_idx = 0
             for action in path:
-                curr_street_name = streets[curr_street_idx]
-                path_text += \
-                    f"Currently at: {curr_street_name}; Take action: {action}\n"
+                path_text += f"Currently at: {streets[curr_panoid_idx]}; " if streets[curr_panoid_idx]["street"] != "Unknown street" else ""
+                path_text += f"Nearby Subways: {subways[curr_panoid_idx]}; " if subways[curr_panoid_idx]["subway"] != "No subway stations found" and detail_level >= 3 else ""
+                path_test += f"Take action: {action}\n"
 
                 if action == "forward":
-                    curr_street_idx += 1
+                    curr_panoid_idx += 1
                 
             input_message = input_message.replace("<<<path_action>>>", path_text)
 
