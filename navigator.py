@@ -197,10 +197,10 @@ class Navigator(BaseNavigator):
             panoid, heading = self.graph_state 
             lat, lon = self.graph.get_node_coordinates(panoid)
             message = f"You are currently at {lat}, {lon} facing {heading}."
-            message += "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right. Once you have decided which action to take, you can forget about the images."
+            message += "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right."
             # message2 = "You can go through the following directions, to the new nodes: " + self.get_state_edges(self.graph_state)
-            message3 = "You can take following action: " + self.show_state_info(self.graph_state)
-            message4 = "Action: ask, ask for help.\nAction: stop, end the navigation."
+            message3 = "You can take following action, only these actions are available in this position: " + self.show_state_info(self.graph_state)
+            message4 = "[Action: ask], ask for help.\n[Action: stop], report arrival."
             
             message += '\n' + message3 + '\n' + message4 + '\n' + supp_instructions
         elif phase == "help":
@@ -208,7 +208,8 @@ class Navigator(BaseNavigator):
         return message
     
     def get_navigation_action(self, image_urls, message: str, mode="human"):    
-        # vision information    
+        # vision information 
+        image_feed = []   
         if image_urls != [] and image_urls != None:
             if self.vision_mode == "url":
                 image_feed = image_urls
@@ -228,7 +229,7 @@ class Navigator(BaseNavigator):
             print(f"Message: {message}")
             print(f"Image features: {image_urls}")
             print("*"*50)   
-        image_feed = []
+        
         if mode == "agent":
             action_message = self.send_message(message, files=image_feed)
             action = self.parse_action(action_message)
@@ -288,7 +289,8 @@ class Navigator(BaseNavigator):
             clues=clues
         )
         help_message = self.oracle.get_answer(question)
-        print(f"The result of help message is: {help_message}")
+        if self.show_info:
+            print(f"The result of help message is: {help_message}")
         return help_message
     
     def get_agent_vis(self, graph_state):
@@ -320,6 +322,8 @@ class Navigator(BaseNavigator):
         self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
         self.log_info["image_urls"] = self.get_image_feature(self.graph_state)
         self.log_info["action"] = "start"
+        self.log_info["action_message"] = "start"
+        
         self.log_info["message"] = [self.config["policy"]]
         self.log_info["target_status"] = [info["status"] for info in self.target_infos]
         yield self.log_info
@@ -342,7 +346,7 @@ class Navigator(BaseNavigator):
                 instruction_ctn += 1
                 action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
             
-            agent_response.append(("Context: " + message, "Agent Action: " + action_message))
+            agent_response.append(("Context: " + message, "Agent Action: " + action, "Agent Response: " + action_message))
 
             if 'message' not in self.log_info:
                 self.log_info['message'] = []
@@ -423,7 +427,7 @@ def main(args):
                           eval_config=eval_config, 
                           task_config=task_config,
                           output_path=output_path,
-                          show_info=True)
+                          show_info=False)
 
     task = navigator.forward()
     
