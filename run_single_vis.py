@@ -84,6 +84,7 @@ def update_current_step(current_step):
         raise ValueError("Invalid step")
     info = infos_state[current_step]
     action = info["action"]
+    action_message = info["action_message"]
     panoid = info["current_state"][0]
     heading = info["current_state"][1]
     agent_vis_path = info["agent_vis"]
@@ -109,7 +110,7 @@ def update_current_step(current_step):
     target3_update = gr.update(value=target_status[2]) if 2<len(target_status) else gr.skip()
     target4_update = gr.update(value=target_status[3]) if 3<len(target_status) else gr.skip()
     
-    return qa_messages, panoid, heading, message, action, log_root, agent_vis_path, vision_input_images, target1_update, target2_update, target3_update, target4_update
+    return qa_messages, panoid, heading, message, action, log_root, agent_vis_path, vision_input_images, target1_update, target2_update, target3_update, target4_update, action_message
 
 config_root = "config"
 navi_config_root = os.path.join(config_root, "navi")
@@ -153,6 +154,7 @@ current_step_num = gr.Number(label="Current Step", value=-1, interactive=False)
 
 init_prompt_text = gr.Textbox(label="Initial Prompt", interactive=False)
 step_prompt_text = gr.Textbox(label="Step Prompt", interactive=False)
+action_message_text = gr.Textbox(label="Action Message", interactive=False)
 
 position_text = gr.Textbox(label="Position", interactive=False)
 heading_text = gr.Textbox(label="Heading", interactive=False)
@@ -199,6 +201,8 @@ with gr.Blocks() as demo:
             with gr.Row():
                 last_step_button.render()
                 next_step_button.render()
+            with gr.Row():
+                action_message_text.render()
     with gr.Row():
         vision_input_images.render()
     with gr.Row():
@@ -215,7 +219,7 @@ with gr.Blocks() as demo:
     last_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(-1)], outputs=[current_step_num])
     next_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(1)], outputs=[current_step_num])
        
-    current_step_num.change(fn=update_current_step, inputs=[current_step_num], outputs=[qa_chatbot, position_text, heading_text, step_prompt_text, action_text, log_root_text, agent_vis_image, vision_input_images, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox])
+    current_step_num.change(fn=update_current_step, inputs=[current_step_num], outputs=[qa_chatbot, position_text, heading_text, step_prompt_text, action_text, log_root_text, agent_vis_image, vision_input_images, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox, action_message_text])
 
 if __name__ == "__main__":
     demo.launch()

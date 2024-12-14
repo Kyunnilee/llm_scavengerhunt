@@ -60,6 +60,8 @@ class AgentEvaluator:
         #eval_finished = current_pos == target_pos # evaluated benchmark value whether the agent reached the goal or not
 
         num_steps = len([pair for pair in total_response if "forward" in pair[1]])
+        if num_steps == 0:  
+            num_steps = 1
         eval_num_questions = len([pair for pair in total_response if "ask" in pair[1]]) / num_steps 
 
         # length of the list of pairs - and scale it by the shortest path length
