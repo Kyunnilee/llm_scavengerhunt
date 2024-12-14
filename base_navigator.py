@@ -23,7 +23,7 @@ class BaseNavigator:
         self.task_config = task_config
         self.start_node: str = task_config["start_node"]
         # self.max_steps: int = task_config["max_steps"]
-        self.max_step: int = 250 # tmp, for 12/12 testing 
+        self.max_step: int = 150 # tmp, for 12/12 testing 
         
         # Assume we have only one target now, hence len(list)==1
         self.target_infos: List[Dict[str, str]] = task_config["target_infos"] # key: panoid, status, ...
@@ -499,9 +499,9 @@ class BaseNavigator:
         available_actions, next_graph_states = self.get_available_next_moves(graph_state)
         for action, next_graph_state in zip(available_actions, next_graph_states):
             if action == 'forward':
-                message += f'\nAction: {action}, go to: {self.graph.get_node_coordinates(next_graph_state[0])}, heading: {next_graph_state[1]}'
+                message += f'\n[Action: {action}], go to: {self.graph.get_node_coordinates(next_graph_state[0])}, heading: {next_graph_state[1]}'
             else:
-                message += f'\nAction: {action}, heading: {next_graph_state[1]}'
+                message += f'\n[Action: {action}], heading: {next_graph_state[1]}'
         return message
         
     def get_state_edges(self, graph_state):

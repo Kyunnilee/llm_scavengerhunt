@@ -190,7 +190,7 @@ class Navigator(BaseNavigator):
         for action in acton_space: # if not matched, try to directly match the action in the message
             if action in action_message:
                 return action
-        return "invalid action"
+        return "You didn't provide a valid action, please try again with [Action: ...]"
         
     def get_navigation_instructions(self, help_message=None, phase="new_state", supp_instructions=""): #phase = new_state, help
         if phase == "new_state":
@@ -239,8 +239,8 @@ class Navigator(BaseNavigator):
                 print(f"Action: {action}")
                 print("="*50)
         elif mode == "human":
-            action = input("Enter the move: ")
-            action_message = f"[Action: {action}] is human mode"
+            action_message = input("Enter the move: ")
+            action = self.parse_action(action_message)
         else:
             raise ValueError("Invalid mode")
         return action, action_message
@@ -359,6 +359,7 @@ class Navigator(BaseNavigator):
                     self.log_info['qa_messages'] = {'question': [], 'answer': []}
                 self.log_info['qa_messages']['question'].append('ask')
                 self.help_message = self.ask_for_help(mode=self.action_mode)
+                self.help_message += "\n" + "If you have further questions, please reply [Action: ask] now, then give you question in the next round."
                 self.log_info['qa_messages']['answer'].append(self.help_message)
             else:
                 step += 1

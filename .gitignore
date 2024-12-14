@@ -6,3 +6,4 @@ tmp
 *.jpg
 *.png
 output/logs
+output/experiments

@@ -11,6 +11,16 @@ def image_url_to_base64(image_url: str) -> str:
     else:
         raise Exception(f"Failed to turn image into base64, status code: {response.status_code}")
     
+
+def del_images(message):
+    content = message['content']
+    new_content = []
+    for c in content:
+        if c['type'] != 'image':
+            new_content.append(c)
+    message['content'] = new_content
+    return message
+    
 class AnthropicAgent:
     def __init__(self, cfg):
         self.client = anthropic.Anthropic()
@@ -36,17 +46,20 @@ class AnthropicAgent:
                         "data": image_url_to_base64(url)
                     }
                 })
-                
-        self.messages.append(new_message)
         
-        message = self.client.messages.create(
+        message_feed = self.messages.copy()
+        message_feed.append(new_message)        
+        
+        response = self.client.messages.create(
             system=self.policy,
             model=self.model,
-            messages=self.messages,
+            messages=message_feed,
             max_tokens=1024
         )
         
-        reply_content = message.content[0].text
+        self.messages.append(del_images(new_message))
+        
+        reply_content = response.content[0].text
         self.messages.append({
             "role": "assistant",
             "content": reply_content
@@ -56,13 +69,25 @@ class AnthropicAgent:
     
 if __name__ == "__main__":
     # test
-    anthropic_agent = AnthropicAgent({
+    agent = AnthropicAgent({
         "model": "claude-3-5-sonnet-20241022",
-        "policy": "You are a world-class poet. Respond only with short poems."
+        "policy": "You are a helpful assistant."
     })
+
     
-    reply = anthropic_agent.send_message("What's in this image?", ["https://maps.googleapis.com/maps/api/streetview?size=300x300&location=37.869545,-122.2527&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=0&pitch=0&source=outdoor", "https://maps.googleapis.com/maps/api/streetview?size=300x300&location=37.868577,-122.2527&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=0&pitch=0&source=outdoor"])
+    reply = agent.send_message("What's in this image?", ["https://maps.googleapis.com/maps/api/streetview?size=300x300&location=37.869545,-122.2527&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=0&pitch=0&source=outdoor", "https://maps.googleapis.com/maps/api/streetview?size=300x300&location=37.868577,-122.2527&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=0&pitch=0&source=outdoor"])
     print(reply)
     
-    reply2 = anthropic_agent.send_message("what if a cute cat appear in the center of the image")
+    reply2 = agent.send_message("what if a cute cat appear in the center of the image")
     print(reply2)
+    print(agent.messages)   
+    
+    reply3 = agent.send_message("tell difference in images, compare to previous image", [
+            "https://maps.googleapis.com/maps/api/streetview?size=300x300&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=304&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=300x300&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=349&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=300x300&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=34&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=300x300&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=79&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=300x300&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=124&pitch=0&source=outdoor"
+        ])
+    print(reply3)
+    print(agent.messages)

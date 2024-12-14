@@ -2,6 +2,14 @@ import os
 from mistralai import Mistral
 
 api_key = "m7CP2GV4U2uTWoDoWK612otgjVh5Hct5"
+def del_images(message):
+    content = message['content']
+    new_content = []
+    for c in content:
+        if c['type'] != 'image_url':
+            new_content.append(c)
+    message['content'] = new_content
+    return message
 class MistralaiAgent:
     def __init__(self, cfg):
         self.client = Mistral(api_key=api_key)
@@ -29,12 +37,15 @@ class MistralaiAgent:
                     "image_url": url
                 })
         
-        self.messages.append(new_message)
+        message_feed = self.messages.copy()
+        message_feed.append(new_message)
         
         completion = self.client.chat.complete(
             model=self.model,
-            messages=self.messages,
+            messages=message_feed,
         )
+        
+        self.messages.append(del_images(new_message))
         
         reply_content = completion.choices[0].message.content
         self.messages.append({
