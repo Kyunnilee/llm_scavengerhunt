@@ -196,11 +196,12 @@ class Navigator(BaseNavigator):
         if phase == "new_state":
             panoid, heading = self.graph_state 
             lat, lon = self.graph.get_node_coordinates(panoid)
-            message = f"You are currently at {lat}, {lon} facing {heading}."
+            message = ""
+            # message += f"You are currently at {lat}, {lon} facing {heading}."
             message += "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right."
             # message2 = "You can go through the following directions, to the new nodes: " + self.get_state_edges(self.graph_state)
             message3 = "You can take following action, only these actions are available in this position: " + self.show_state_info(self.graph_state)
-            message4 = "[Action: ask], ask for help.\n[Action: stop], report arrival."
+            message4 = "[Action: ask], ask for more information.\n[Action: stop], report arrival."
             
             message += '\n' + message3 + '\n' + message4 + '\n' + supp_instructions
         elif phase == "help":
@@ -299,6 +300,24 @@ class Navigator(BaseNavigator):
         candidate_nodeid = [node.panoid for node in candidate_nodes]
         agent_vis_file = self.visualization.update(panoid, candidate_nodeid)
         return agent_vis_file
+    
+    def navigation_log(self, agent_response, shortest_path, forward_ctn, ask_ctn, step):
+        num_question, num_steps, action_score, question_score = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
+        self.log_info["arrival_info"] = self.collect_arrival_info()
+        self.log_info["metrics"] = {"num_question": num_question, 
+                                    "num_steps": num_steps, 
+                                    "action_score": action_score, 
+                                    "question_score": question_score}
+        self.log_info["forward_ctn"] = forward_ctn
+        self.log_info["ask_ctn"] = ask_ctn
+        
+        logs_save = self.log_infos
+        logs_save.append(self.log_info)
+        
+        with open(os.path.join(self.log_root, f"log_infos_{step}.json"), 'w') as f:
+            json.dump(logs_save, f)    
+        
+        return self.log_info
 
     def forward(self): 
         start_graph_state = (self.start_node, self.task_config.get("start_heading", 0))
@@ -312,6 +331,8 @@ class Navigator(BaseNavigator):
         # initial state
         step = 0
         instruction_ctn = 0
+        forward_ctn = 0
+        ask_ctn = 0
         agent_response = []
         world_states, clues = self.collect_observations()
         shortest_path = world_states["path_action"]
@@ -347,7 +368,9 @@ class Navigator(BaseNavigator):
                 action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
             
             agent_response.append(("Context: " + message, "Agent Action: " + action, "Agent Response: " + action_message))
-
+            forward_ctn += 1 if action == "forward" else 0
+            ask_ctn += 1 if action == "ask" else 0
+            
             if 'message' not in self.log_info:
                 self.log_info['message'] = []
             self.log_info["message"].append(message)
@@ -381,18 +404,7 @@ class Navigator(BaseNavigator):
             # if achive all target or reach max step, end the navigation
             if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
                 print("DONE")
-                (num_question, num_steps, action_score, question_score) = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
-                
-                # TODO: add other log info here
-                self.log_info["arrival_info"] = self.collect_arrival_info()
-                self.log_info["metrics"] = {"num_question": num_question, 
-                                            "num_steps": num_steps, 
-                                            "action_score": action_score, 
-                                            "question_score": question_score}
-                
-                self.log_infos.append(self.log_info)
-                with open(os.path.join(self.log_root, "log_infos.json"), 'w') as f:
-                    json.dump(self.log_infos, f)    
+                self.navigation_log(agent_response, shortest_path, forward_ctn, ask_ctn, step)
                     
                 self.log_info["over"] = True
                 
