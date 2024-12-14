@@ -11,14 +11,16 @@ tokens = {
         'cf_clearance': ...,
     } 
 
+system_prompt_template = "Your current message context:\n <System> <<<content>>> </System>"
+
 class PoeAgent():
     def __init__(self, cfg):
         self.tokens = cfg['tokens']
         self.model = cfg['model']
         self.client = PoeApi(tokens=self.tokens)
-        system_prompt = cfg['policy']
+        self.system_prompt = cfg['policy']
         self.chat_id = None
-        chunk = self._send_message_chunk(system_prompt)
+        chunk = self._send_message_chunk(self.system_prompt)
         self.chat_id = chunk['chatId'] #to get continue the conversation in the same thread 
         
     def _send_message_chunk(self, message:str, image_paths=[]):
@@ -34,6 +36,7 @@ class PoeAgent():
     def send_message(self, message:str, image_urls=[]):
         image_feed = []
         temp_dir = tempfile.mkdtemp()
+        message_feed = system_prompt_template.replace("<<<content>>>", self.system_prompt) + "\n" + message
         try:
             for i, image_url in enumerate(image_urls):
                 response = requests.get(image_url)
@@ -44,7 +47,7 @@ class PoeAgent():
                     image_feed.append(temp_file_path)
                 else:
                     print(f"Failed to download image from {image_url}")
-            for chunk in self.client.send_message(bot=self.model, message=message, file_path=image_feed, chatId=self.chat_id):
+            for chunk in self.client.send_message(bot=self.model, message=message_feed, file_path=image_feed, chatId=self.chat_id):
                 time.sleep(0.01)
                 pass
             return chunk['text']
