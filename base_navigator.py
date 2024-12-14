@@ -44,7 +44,7 @@ class BaseNavigator:
             if arrive:
                 return f'Arrived at target {info["name"]}, place: {info["panoid"]}.'
             else:
-                return "Not arrived yet. Can't choose stop."
+                return "Not arrived yet. Can't choose stop. Maybe you are not close enough to destination."
         
         available_actions, _ = self.get_available_next_moves(self.graph_state)
         if action not in available_actions:
