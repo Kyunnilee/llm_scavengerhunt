@@ -1,6 +1,6 @@
 # Example Usage
-python navigator.py --navi=mistralai_navi.json \
+python navigator.py --navi=mistralai_pixtral-12b-2409_navi.json \
                     --map=touchdown_streetmap.json \
-                    --eval=evaluator_new.json \
+                    --eval=evaluator.json \
                     --task=example_touchdown_task.json \
                     --vision=openai_vision.json

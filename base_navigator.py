@@ -298,7 +298,8 @@ class BaseNavigator:
         
         return action_list, path
 
-    def _query_clue(self, lat: float, lng: float, info_type: str) -> Dict:
+    def _query_clue(self, lat: float, lng: float, 
+                            info_type: str, overwrite_radius: int = None) -> Dict:
         """
         Get specific information about a location.
         
@@ -306,7 +307,7 @@ class BaseNavigator:
             lat: Latitude
             lng: Longitude
             info_type: Type of information wanted 
-                ('street' | 'neighbors' | 'landmarks' | 'attractions')
+                ('street' | 'neighbors' | 'landmarks' | 'attractions' | 'subway')
         
         Returns:
             Dictionary containing requested information
@@ -333,8 +334,9 @@ class BaseNavigator:
             elif info_type == 'neighbors':
                 result = gmaps.places_nearby(
                     location=(lat, lng),
-                    radius=20,  # 20, radius
-                    type='premise'
+                    radius=20 if overwrite_radius is None else overwrite_radius,  # 20m radius
+                    type='premise',
+                    rank_by='distance'
                 )
                 
                 if not result.get('results'):
@@ -350,8 +352,9 @@ class BaseNavigator:
             elif info_type == 'landmarks':
                 result = gmaps.places_nearby(
                     location=(lat, lng),
-                    radius=50,  # 50m radius
-                    type='point_of_interest'
+                    radius=50 if overwrite_radius is None else overwrite_radius,  # 50m radius
+                    type='point_of_interest', 
+                    rank_by='distance'
                 )
                 
                 if not result.get('results'):
@@ -368,8 +371,9 @@ class BaseNavigator:
             elif info_type == 'attractions':
                 result = gmaps.places_nearby(
                     location=(lat, lng),
-                    radius=50,
-                    type='tourist_attraction'
+                    radius=50 if overwrite_radius is None else overwrite_radius,
+                    type='tourist_attraction', 
+                    rank_by='distance'
                 )
                 
                 if not result.get('results'):

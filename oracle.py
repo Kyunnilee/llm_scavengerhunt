@@ -76,9 +76,6 @@ class Oracle():
             
             qa_prompt = openai_oracle.qa_final_prompt
 
-            print(self.latest_clues)
-            # exit(0)
-
             qa_prompt = qa_prompt.replace("<<<target_name>>>", self.latest_world_states["target_name"])
             qa_prompt = qa_prompt.replace("<<<abs_target_pos>>>", str(self.latest_world_states["abs_target_pos"]))
             qa_prompt = qa_prompt.replace("<<<abs_target_dir>>>", self.latest_world_states["abs_target_dir"])

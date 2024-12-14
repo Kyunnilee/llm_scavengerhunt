@@ -100,24 +100,24 @@ The relative position of the current position to the target is: <<<rel_curr_pos>
 
 The path from current location to target location is: <<<path_description>>>
 
-The landmarks nearby current location are: 
+The landmarks nearby current location, sorted by DISTANCE, are: 
 <<<curr_nearby_landmarks>>>
 
-The attractions nearby current location are: 
+The attractions nearby current location, sorted by DISTANCE, are: 
 <<<curr_nearby_attractions>>>
 
-The neighbors nearby current location (in a shorter distance; i.e. closer than above) are: 
+The neighbors nearby current location (in a shorter distance; i.e. closer than above), sorted by DISTANCE, are: 
 <<<curr_nearby_neighbors>>>
 
 The current street that the testing agent is located as is: <<<curr_street>>>
 
-The landmarks nearby target location are: 
+The landmarks nearby target location, sorted by DISTANCE, are: 
 <<<target_nearby_landmarks>>>
 
-The attractions nearby target location are: 
+The attractions nearby target location, sorted by DISTANCE, are: 
 <<<target_nearby_attractions>>>
 
-The neighbors nearby target location (in a shorter distance; i.e. closer than above) are: 
+The neighbors nearby target location (in a shorter distance; i.e. closer than above), sorted by DISTANCE, are: 
 <<<target_nearby_neighbors>>>
 
 The target is located at street: <<<target_street>>>
