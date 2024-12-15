@@ -302,7 +302,7 @@ class Navigator(BaseNavigator):
         return agent_vis_file
     
     def navigation_log(self, agent_response, shortest_path, forward_ctn, ask_ctn, step):
-        num_question, num_steps, action_score, question_score = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, debug=True)
+        num_question, num_steps, action_score, question_score = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, num_steps=forward_ctn, num_q=ask_ctn, debug=True)
         self.log_info["arrival_info"] = self.collect_arrival_info()
         self.log_info["metrics"] = {"num_question": num_question, 
                                     "num_steps": num_steps, 

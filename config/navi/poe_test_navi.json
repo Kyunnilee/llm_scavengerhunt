@@ -1,0 +1,13 @@
+{
+    "mode": "poe",
+    "model": "gpt4_o_mini_128k",
+    "tokens" : {
+        "p-b": "Q5YbN6TcM7Gk4SVcqiSw6g%3D%3D",
+        "p-lat": "k05S4IaWrNffY6l8rcFQWJgZrOxbYM6MBowunQqI9A%3D%3D",
+        "formkey": "187b25b4ab37998a6219fabed6c6fc9a24",
+        "__cf_bm": "FaU1cohkyE5q6deLTGp5gIR_4j9qF35GVnKxlDBhEPo-1734137756-1.0.1.1-SCdGfCNmCx_ND26qnFIqEZLhEkJQfG8BqQXVUjmCWXoWHYjFpF732EsPcJa2.vue3V1tPW9JqqwZ.0590RkQPA",
+        "cf_clearance": "EXZMK7AGydS5Q6W.NO320t.w52yLEJIYw6g.uwtmvmM-1734137757-1.2.1.1-Zm6kDRW2Hg3yp8B4b.pHkIWiRh9VAaxB..70Xded9Fep95A9daGcwxW2z7EOpAD8zzXnWSlhtu7UXJE8EEiC.RPU5k9wcz0F1.j5FfMKp5GOND7kiRP1nVpbs.xNpjaUu2cOEAv.9dMcTp6n8N9Di4sMLjNElFuCm6jfJ.kb2Nih0PcsALHZ3IzOc8D3hoB.m9CAfVaUzFua90euj4N7mTJVst7s_sg7QwCQcQKENzlHott9FrVbLgbRKB.yN5VYWIXc84eNqLLKgtbBuijL0qs98btodsmExmrVJQM4pLWwe7HO2Gw7GAmoVACj1ePgXRV1QlOh8M786RMv.b0zzKK2dgyyCbuHu_zuPGpa_a5c7Z3SO.qyuAviKuDl1Jv27iuRlD3tsY0.Tg.Atux.Kg"
+    },
+    "policy": "You are a person who is on a scavenger hunt in the city and you need to find the [<<<target_name>>>]. Whenever you arrive at a new location, I will show you some images of the street around you, and tell you where you are and where you are heading. After thinking about it, you need to give your actions. Your possible actions are as follows: [forward, left, right, turn_around, stop, ask]. Select forward to get to the next point where you are currently facing, and select left/right, where you will change orientation. When you don't know how to act, you can choose the action `ask`, and then I will ask you what is the point of confusion, in the rest of the conversation, you need to ask questions to help you obtain information to decide on the action. Finally, if you think you have reached your destination, use Action stop. You should give action at end of your reply, the formulation should be like: [Action: YOU ACTION]. You should figure out how to go to the <<<target_name>>> before you move",
+    "vision_mode": "vision_answering"
+}
