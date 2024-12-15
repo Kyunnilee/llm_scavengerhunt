@@ -100,24 +100,24 @@ The relative position of the current position to the target is: <<<rel_curr_pos>
 
 The path from current location to target location is: <<<path_description>>>
 
-The landmarks nearby current location are: 
+The landmarks nearby current location, sorted by DISTANCE, are: 
 <<<curr_nearby_landmarks>>>
 
-The attractions nearby current location are: 
+The attractions nearby current location, sorted by DISTANCE, are: 
 <<<curr_nearby_attractions>>>
 
-The neighbors nearby current location (in a shorter distance; i.e. closer than above) are: 
+The neighbors nearby current location (in a shorter distance; i.e. closer than above), sorted by DISTANCE, are: 
 <<<curr_nearby_neighbors>>>
 
 The current street that the testing agent is located as is: <<<curr_street>>>
 
-The landmarks nearby target location are: 
+The landmarks nearby target location, sorted by DISTANCE, are: 
 <<<target_nearby_landmarks>>>
 
-The attractions nearby target location are: 
+The attractions nearby target location, sorted by DISTANCE, are: 
 <<<target_nearby_attractions>>>
 
-The neighbors nearby target location (in a shorter distance; i.e. closer than above) are: 
+The neighbors nearby target location (in a shorter distance; i.e. closer than above), sorted by DISTANCE, are: 
 <<<target_nearby_neighbors>>>
 
 The target is located at street: <<<target_street>>>
@@ -270,20 +270,20 @@ Please pay SPECIAL ATTENTION to make the text detailed and clear. Here is an exa
 
 Our input: 
 At \"Bancoft Street\"
-Action: Forward"
+Action: Forward"; Nearby Subway: Downtown Berkeley
 Action: Forward.
 Action: Forward.
 Action: Turn Right.
 Action: Turn Right.
 Action: Forward. 
 At: \"Shuttuck Avenue\"
-Action: Forward.
+Action: Forward. 
 Action: Stop.
 
 Your output should look like: 
-You are at \"Bancoft Street\" now. Start by moving forward for three steps. "
+You are at \"Bancoft Street\" now. Start by moving forward for three steps. You should see a subway station named Downtown Berkeley on your way."
 Next, you will reach the intersection of \"Bancoft Street\" and \"Shuttuck Avenue\". "
-Turn right TWICE at this point. This will orient you properly at the intersection. Afterward, proceed forward for two more steps. "
+Turn right TWICE at this point. This will orient you properly at the intersection. Afterward, proceed forward for one more step."
 You will arrive at your target. Use action \"Stop\" once you reach it."
 
 Now the real input is: 

@@ -4,6 +4,7 @@ from graph_loader import *
 from typing import *
 
 import os
+import json
 import googlemaps
 
 turn_around_angle_limit = 60
@@ -44,7 +45,7 @@ class BaseNavigator:
             if arrive:
                 return f'Arrived at target {info["name"]}, place: {info["panoid"]}.'
             else:
-                return "Not arrived yet. Can't choose stop."
+                return "Not arrived yet. Can't choose stop. Maybe you are not close enough to destination."
         
         available_actions, _ = self.get_available_next_moves(self.graph_state)
         if action not in available_actions:
@@ -298,7 +299,8 @@ class BaseNavigator:
         
         return action_list, path
 
-    def _query_clue(self, lat: float, lng: float, info_type: str) -> Dict:
+    def _query_clue(self, lat: float, lng: float, 
+                            info_type: str, overwrite_radius: int = None) -> Dict:
         """
         Get specific information about a location.
         
@@ -306,7 +308,7 @@ class BaseNavigator:
             lat: Latitude
             lng: Longitude
             info_type: Type of information wanted 
-                ('street' | 'neighbors' | 'landmarks' | 'attractions')
+                ('street' | 'neighbors' | 'landmarks' | 'attractions' | 'subway')
         
         Returns:
             Dictionary containing requested information
@@ -333,8 +335,9 @@ class BaseNavigator:
             elif info_type == 'neighbors':
                 result = gmaps.places_nearby(
                     location=(lat, lng),
-                    radius=20,  # 20, radius
-                    type='premise'
+                    radius=20 if overwrite_radius is None else overwrite_radius,  # 20m radius
+                    type='premise',
+                    # rank_by='distance'
                 )
                 
                 if not result.get('results'):
@@ -350,8 +353,9 @@ class BaseNavigator:
             elif info_type == 'landmarks':
                 result = gmaps.places_nearby(
                     location=(lat, lng),
-                    radius=50,  # 50m radius
-                    type='point_of_interest'
+                    radius=50 if overwrite_radius is None else overwrite_radius,  # 50m radius
+                    type='point_of_interest', 
+                    # rank_by='distance'
                 )
                 
                 if not result.get('results'):
@@ -368,8 +372,9 @@ class BaseNavigator:
             elif info_type == 'attractions':
                 result = gmaps.places_nearby(
                     location=(lat, lng),
-                    radius=50,
-                    type='tourist_attraction'
+                    radius=50 if overwrite_radius is None else overwrite_radius,
+                    type='tourist_attraction', 
+                    # rank_by='distance'
                 )
                 
                 if not result.get('results'):
@@ -382,6 +387,24 @@ class BaseNavigator:
                         "address": place.get('vicinity', 'No address')
                     })
                 return {"attractions": attractions}
+
+            elif info_type == 'subway':
+                # Query for nearby subway stations (type = 'subway_station')
+                result = gmaps.places_nearby(
+                    location=(lat, lng),
+                    radius=10 if overwrite_radius is None else overwrite_radius,  # 500m radius to find nearby subway stations
+                    type='subway_station',
+                    # rank_by='distance'
+                )
+                
+                if not result.get('results'):
+                    return {"subway": "No subway stations found"}
+                
+                nearest_subway = result['results'][0]
+                return {"subway": {
+                    "name": nearest_subway['name'],
+                    "address": nearest_subway.get('vicinity', 'No address')
+                }}
                 
             else:
                 return {"error": "Unknown info_type"}
@@ -389,12 +412,19 @@ class BaseNavigator:
         except Exception as e:
             return {"error": f"Failed to get information: {str(e)}"}
     
-    def _query_batch_streetnames(self, panoids: List[str]) -> List[str]:
-        streetnames = []
+    def _query_batch(self, panoids: List[str], info_type) -> List[str]:
+        """
+        info_type: 
+        + Type of information wanted 
+        + ('street' | 'neighbors' | 'landmarks' | 'attractions' | 'subway')
+        """
+        results = []
         for panoid in panoids:
             coord = self.graph.nodes[panoid].coordinate
-            streetnames.append(self._query_clue(coord[0], coord[1], "street"))
-        return streetnames
+            results.append(
+                self._query_clue(coord[0], coord[1], info_type)
+            )
+        return results
 
     def check_arrival(self):
         '''
@@ -454,7 +484,8 @@ class BaseNavigator:
                 node_to=target_panoid, 
                 init_heading=curr_heading, 
             )
-        world_states["path_streets"] = self._query_batch_streetnames(world_states["path_nodes"])
+        world_states["path_streets"] = self._query_batch(world_states["path_nodes"], info_type="street")
+        world_states["path_subways"] = self._query_batch(world_states["path_nodes"], info_type="subway")
         world_states["path_len"] = len(world_states["path_nodes"])
 
         # 2. collect global location of curr and target
@@ -514,7 +545,14 @@ class BaseNavigator:
         return message
 
 if __name__ == "__main__":
-    test_nav = BaseNavigator()
+    with open("config/task/example_touchdown_task.json", "r") as f:
+        tsk_cfg = json.load(f)
+    with open("config/map/touchdown_streetmap.json", "r") as f:
+        map_cfg = json.load(f)
+    test_nav = BaseNavigator(task_config=tsk_cfg, map_config=map_cfg)
+
+    res = test_nav._query_clue(37.877530, -122.262665, "street")
+    print(res)
 
     # test_panoid_start = "65352337"
     # test_panoid_to = [node.panoid for node in \
@@ -535,14 +573,14 @@ if __name__ == "__main__":
     #         print(f"Config: target={target}, init_heading={heading}, target_heading={test_panoid_start_heading[idx]}")
     #         print(f"Result: {result}")
 
-    test_panoid_start = "6639218292"
-    test_panoid_end = "5434001267"
-    test_panoid_start_heading = list(test_nav.graph.nodes[test_panoid_start].neighbors.keys())
-    print(test_panoid_start_heading)
+    # test_panoid_start = "6639218292"
+    # test_panoid_end = "5434001267"
+    # test_panoid_start_heading = list(test_nav.graph.nodes[test_panoid_start].neighbors.keys())
+    # print(test_panoid_start_heading)
 
-    test_path = test_nav._get_correct_action_sequence(
-        node_from=test_panoid_start, 
-        node_to=test_panoid_end, 
-        init_heading=168
-    )
-    print(test_path) 
+    # test_path = test_nav._get_correct_action_sequence(
+    #     node_from=test_panoid_start, 
+    #     node_to=test_panoid_end, 
+    #     init_heading=168
+    # )
+    # print(test_path) 
