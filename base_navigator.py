@@ -80,24 +80,24 @@ class BaseNavigator:
             raise ValueError('Invalid action.')
 
         next_panoid = next_node.panoid
-        next_heading = self._get_nearest_heading(curr_state, next_node, go_towards)
+        next_heading = self._get_nearest_heading(curr_state, next_node, go_towards) # if not forward, next_node is the same node
         return next_panoid, next_heading
     
     def _check_action_validity(self, curr_state, go_towards):
         '''
-        check [left, right, turn_around] action validity. 
+        check [forward, left, right, turn_around] action validity. 
         If there is node in the limit range, return True.
         assume forward action is always valid.
         '''
         curr_panoid, curr_heading = curr_state
         current_node = self.graph.nodes[curr_panoid]
-        _, diff = self._get_nearest_heading_and_diff(curr_state, current_node, go_towards, inplace=True)
+        _, diff = self._get_nearest_heading_and_diff(curr_state, current_node, go_towards)
         if go_towards == 'forward':
             return diff in FORWARD_RANGE
         elif go_towards == 'turn_around':
             return diff in TURN_AROUND_RANGE
         elif go_towards == 'left' or go_towards == 'right':
-            return diff in LEFT_RIGHT_RANGE
+            return diff in LEFT_RIGHT_RANGE or diff in range(1, int(forward_angle_limit/2))
         else:
             raise ValueError('Invalid action or try to check forward action.')
         
@@ -146,23 +146,19 @@ class BaseNavigator:
             next_heading = curr_heading
         return int(next_heading)
     
-    def _get_nearest_heading_and_diff(self, curr_state, next_node, go_towards, inplace=False):
+    def _get_nearest_heading_and_diff(self, curr_state, current_node, go_towards): # get diff to validate action
         _, curr_heading = curr_state
         next_heading = None
 
         diff = float('inf')
         diff_func = self._get_diff_func(go_towards)
 
-        for heading in next_node.neighbors.keys(): # next node could be same as current node, or next node (forward)
+        for heading in current_node.neighbors.keys(): # next node could be same as current node, or next node (forward)
             if heading == curr_heading and go_towards != 'forward':
                 # don't match to the current heading when turning
                 continue
             
             diff_ = diff_func(int(heading), int(curr_heading))
-            
-            if go_towards == 'forward' and not inplace and diff_ not in FORWARD_RANGE:
-                # don't automatical turn to nearest heading if no proper neighbor
-                continue
             
             if diff_ < diff:
                 diff = diff_
@@ -185,15 +181,10 @@ class BaseNavigator:
         available_actions = []
         available_next_states = []
         for action in next_actions:
-            if action == 'forward':
-                if self._check_action_validity(graph_state, action):
-                    available_actions.append(action)
-                    available_next_states.append(self._get_next_graph_state(graph_state, action))
-            elif action == 'left' or action == 'right' or action == 'turn_around':
-                if self._check_action_validity(graph_state, action):
-                    available_actions.append(action)
-                    available_next_states.append(self._get_next_graph_state(graph_state, action))
-                
+            if self._check_action_validity(graph_state, action):
+                available_actions.append(action)
+                available_next_states.append(self._get_next_graph_state(graph_state, action))
+            
         return available_actions, available_next_states
 
     def _get_action_between_nodes(self, panoid_from: str, panoid_to: str, 
@@ -530,9 +521,12 @@ class BaseNavigator:
         available_actions, next_graph_states = self.get_available_next_moves(graph_state)
         for action, next_graph_state in zip(available_actions, next_graph_states):
             if action == 'forward':
-                message += f'\n[Action: {action}], go to: {self.graph.get_node_coordinates(next_graph_state[0])}, heading: {next_graph_state[1]}'
+                # message += f'\n[Action: {action}], go to: {self.graph.get_node_coordinates(next_graph_state[0])}, heading: {next_graph_state[1]}'
+                message += f'\n[Action: {action}], go to new position in front of you.'
+                
             else:
-                message += f'\n[Action: {action}], heading: {next_graph_state[1]}'
+                # message += f'\n[Action: {action}], heading: {next_graph_state[1]}'
+                message += f'\n[Action: {action}], turn to new direction in the same position.'
         return message
         
     def get_state_edges(self, graph_state):
