@@ -1,0 +1,15 @@
+{
+    "start_node": "9DIfdCxZGzPpWZpGyKtD8w",
+    "start_heading": 0,
+    "target_infos": [
+        {
+            "panoid": "x0ELHDoEstJauUQoZAmTVw",
+            "name": "Starbucks",
+            "latitude": 40.744169,
+            "longitude": -73.983712,
+            "address": "424 Park Ave S, New York",
+            "description": "Starbucks is located at 424 Park Ave S, New York"
+        }
+    ],
+    "arrive_threshold": 25
+}

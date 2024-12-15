@@ -1,0 +1,15 @@
+{
+    "start_node": "w8oN7Ezh1dW1lg6JgEevkA",
+    "start_heading": 0,
+    "target_infos": [
+        {
+            "panoid": "Z9OhHCKk_omHYrN2CKt0VA",
+            "name": "Subway",
+            "latitude": 40.7171506,
+            "longitude": -73.9899748,
+            "address": "334 Grand St, New York",
+            "description": "Subway is located at 334 Grand St, New York"
+        }
+    ],
+    "arrive_threshold": 25
+}

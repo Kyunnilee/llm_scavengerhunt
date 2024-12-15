@@ -1,0 +1,15 @@
+{
+    "start_node": "rPTVP0otc38jbgPYYeYcVg",
+    "start_heading": 0,
+    "target_infos": [
+        {
+            "panoid": "AHwJHmXHGIAxnpI2qSNBlA",
+            "name": "Target",
+            "latitude": 40.7345854,
+            "longitude": -73.989688,
+            "address": "10 Union Square E, New York",
+            "description": "Target is located at 10 Union Square E, New York"
+        }
+    ],
+    "arrive_threshold": 25
+}

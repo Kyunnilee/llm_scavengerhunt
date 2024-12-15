@@ -1,0 +1,15 @@
+{
+    "start_node": "FXZGOBvqG28wWU-0qb1_2A",
+    "start_heading": 0,
+    "target_infos": [
+        {
+            "panoid": "V36kCMEp3st7THSA8B6I7w",
+            "name": "St. John\u2019s Lutheran Church",
+            "latitude": 40.7336008,
+            "longitude": -74.0036025,
+            "address": "81 Christopher St, New York",
+            "description": "St. John\u2019s Lutheran Church is located at 81 Christopher St, New York"
+        }
+    ],
+    "arrive_threshold": 25
+}
