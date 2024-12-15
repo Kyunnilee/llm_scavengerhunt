@@ -135,7 +135,7 @@ class Oracle():
             for action in path:
                 path_text += f"Currently at: {streets[curr_panoid_idx]}; " if streets[curr_panoid_idx]["street"] != "Unknown street" else ""
                 path_text += f"Nearby Subways: {subways[curr_panoid_idx]}; " if subways[curr_panoid_idx]["subway"] != "No subway stations found" and detail_level >= 3 else ""
-                path_test += f"Take action: {action}\n"
+                path_text += f"Take action: {action}\n"
 
                 if action == "forward":
                     curr_panoid_idx += 1

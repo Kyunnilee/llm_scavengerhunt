@@ -301,16 +301,21 @@ class Navigator(BaseNavigator):
         agent_vis_file = self.visualization.update(panoid, candidate_nodeid)
         return agent_vis_file
     
-    def navigation_log(self, agent_response, shortest_path, forward_ctn, ask_ctn, step):
-        num_question, num_steps, action_score, question_score = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, num_steps=forward_ctn, num_q=ask_ctn, debug=True)
-        self.log_info["arrival_info"] = self.collect_arrival_info()
-        self.log_info["metrics"] = {"num_question": num_question, 
-                                    "num_steps": num_steps, 
-                                    "action_score": action_score, 
-                                    "question_score": question_score}
-        self.log_info["forward_ctn"] = forward_ctn
-        self.log_info["ask_ctn"] = ask_ctn
+    def navigation_log(self, step, agent_response=None, shortest_path=None, forward_ctn=None, ask_ctn=None):
         
+        if (agent_response is not None and 
+            shortest_path is not None and 
+            forward_ctn is not None and 
+            ask_ctn is not None):
+            num_question, num_steps, action_score, question_score = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, num_steps=forward_ctn, num_q=ask_ctn, debug=True)
+            self.log_info["metrics"] = {"num_question": num_question, 
+                                        "num_steps": num_steps, 
+                                        "action_score": action_score, 
+                                        "question_score": question_score}
+            self.log_info["forward_ctn"] = forward_ctn
+            self.log_info["ask_ctn"] = ask_ctn
+        
+        self.log_info["arrival_info"] = self.collect_arrival_info()
         logs_save = self.log_infos
         logs_save.append(self.log_info)
         
@@ -371,6 +376,8 @@ class Navigator(BaseNavigator):
             agent_response.append(("Context: " + message, "Agent Action: " + action, "Agent Response: " + action_message))
             forward_ctn += 1 if action == "forward" else 0
             ask_ctn += 1 if action == "ask" else 0
+            self.log_info["forward_ctn"] = forward_ctn
+            self.log_info["ask_ctn"] = ask_ctn
             
             if 'message' not in self.log_info:
                 self.log_info['message'] = []
@@ -405,7 +412,7 @@ class Navigator(BaseNavigator):
             # if achive all target or reach max step, end the navigation
             if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
                 print("DONE")
-                self.navigation_log(agent_response, shortest_path, forward_ctn, ask_ctn, step)
+                self.navigation_log(step, agent_response=agent_response, shortest_path=shortest_path, forward_ctn=forward_ctn, ask_ctn=ask_ctn)
                     
                 self.log_info["over"] = True
                 
