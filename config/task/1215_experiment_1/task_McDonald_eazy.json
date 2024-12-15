@@ -1,5 +1,5 @@
 {
-    "start_node": "zlFUSBnu6QK0qjzteHO0rA",
+    "start_node": "5lKB4jIlJQLonkXndVCqXQ",
     "start_heading": 0,
     "target_infos": [
         {
@@ -11,5 +11,5 @@
             "description": "McDonald's is located at 809 Ave of the Americas, New York"
         }
     ],
-    "arrive_threshold": 25
+    "arrive_threshold": 75
 }

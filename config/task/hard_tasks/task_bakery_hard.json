@@ -11,5 +11,5 @@
             "description": "Breads Bakery is located at 18 E 16th St, New York"
         }
     ],
-    "arrive_threshold": 25
+    "arrive_threshold": 75
 }

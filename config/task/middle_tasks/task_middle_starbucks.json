@@ -11,5 +11,5 @@
             "description": "Starbucks is located at 424 Park Ave S, New York"
         }
     ],
-    "arrive_threshold": 25
+    "arrive_threshold": 75
 }

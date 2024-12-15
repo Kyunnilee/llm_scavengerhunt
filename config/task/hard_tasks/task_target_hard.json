@@ -11,5 +11,5 @@
             "description": "Target is located at 10 Union Square E, New York"
         }
     ],
-    "arrive_threshold": 25
+    "arrive_threshold": 75
 }

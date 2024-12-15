@@ -11,5 +11,5 @@
             "description": "Subway is located at 221 E Broadway Store #1, New York"
         }
     ],
-    "arrive_threshold": 25
+    "arrive_threshold": 75
 }

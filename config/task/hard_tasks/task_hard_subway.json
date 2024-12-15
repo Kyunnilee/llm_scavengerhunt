@@ -11,5 +11,5 @@
             "description": "Subway is located at 334 Grand St, New York"
         }
     ],
-    "arrive_threshold": 25
+    "arrive_threshold": 75
 }
