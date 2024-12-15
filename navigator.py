@@ -344,6 +344,7 @@ class Navigator(BaseNavigator):
         self.log_info["image_urls"] = self.get_image_feature(self.graph_state)
         self.log_info["action"] = "start"
         self.log_info["action_message"] = "start"
+        self.log_info["shortest_path"] = shortest_path
         
         self.log_info["message"] = [self.config["policy"]]
         self.log_info["target_status"] = [info["status"] for info in self.target_infos]
