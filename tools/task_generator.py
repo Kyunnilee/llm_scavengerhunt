@@ -55,7 +55,9 @@ def main():
     source_data = read_source_json()
     
     # Generate task JSONs
-    generate_task_jsons(source_data)
+    import time
+    output_dir = f"output/tasks/{time.strftime('%Y%m%d-%H%M%S')}"
+    generate_task_jsons(source_data, output_dir=output_dir)
     
     print("\nTask generation completed!")
     print(f"Generated {len(source_data['start_points'])} task files")

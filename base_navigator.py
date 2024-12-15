@@ -6,6 +6,7 @@ from typing import *
 import os
 import json
 import googlemaps
+import time
 
 turn_around_angle_limit = 60
 forward_angle_limit = 90
@@ -411,6 +412,8 @@ class BaseNavigator:
         """
         results = []
         for panoid in panoids:
+            if len(panoid) > 15:
+                time.sleep(0.2)
             coord = self.graph.nodes[panoid].coordinate
             results.append(
                 self._query_clue(coord[0], coord[1], info_type)

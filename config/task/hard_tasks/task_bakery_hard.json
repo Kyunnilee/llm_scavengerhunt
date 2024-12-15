@@ -1,0 +1,15 @@
+{
+    "start_node": "OMKxCadtk-BRKzYctZdIag",
+    "start_heading": 0,
+    "target_infos": [
+        {
+            "panoid": "G-cuBB9nmBIUxQNpAzI52g",
+            "name": "Breads Bakery",
+            "latitude": 40.7368676,
+            "longitude": -73.9916439,
+            "address": "18 E 16th St, New York",
+            "description": "Breads Bakery is located at 18 E 16th St, New York"
+        }
+    ],
+    "arrive_threshold": 75
+}

@@ -11,5 +11,5 @@
             "description": "McDonald's is located at 809 Ave of the Americas, New York"
         }
     ],
-    "arrive_threshold": 25
+    "arrive_threshold": 75
 }

@@ -1,0 +1,15 @@
+{
+    "start_node": "wOd2XDb0Js4uUZB1UHEmjA",
+    "start_heading": -94,
+    "target_infos": [
+        {
+            "panoid": "Wvr6J4v-DrRAndz0Xo8EdQ",
+            "name": "Subway",
+            "latitude": 40.7141144,
+            "longitude": -73.9869863,
+            "address": "221 E Broadway Store #1, New York",
+            "description": "Subway is located at 221 E Broadway Store #1, New York"
+        }
+    ],
+    "arrive_threshold": 75
+}

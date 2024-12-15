@@ -18,6 +18,7 @@ class GeminiAgent:
         self.model = genai.GenerativeModel(model_name=cfg['model'],
                                            system_instruction=cfg['policy'])
         self.chat = self.model.start_chat(history=[])
+        self.messages_history = []
     
     def send_message(self, message:str, image_urls=[]):
         image_parts = []
@@ -26,6 +27,9 @@ class GeminiAgent:
             image_parts.append(image)
         
         response = self.chat.send_message([message]+image_parts)
+        self.messages_history.append({"role": "user", "parts": message})
+        self.messages_history.append({"role": "model", "parts": response.text})
+        self.chat = self.model.start_chat(history=self.messages_history)
         return response.text
 
 if __name__ == "__main__":
@@ -52,6 +56,11 @@ describe the images above first.''',
         ])
     print(response)
     
-    
     response2 = agent.send_message("how do you like the images? how many images are there?",)
     print(response2)
+    
+    print('\n\n')
+    for his in agent.chat.history:
+        print(his)
+        print('---')
+    

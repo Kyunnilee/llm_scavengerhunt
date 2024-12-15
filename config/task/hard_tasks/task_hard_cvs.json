@@ -1,0 +1,15 @@
+{
+    "start_node": "a4bZKQtbXyPvv2A-5dia3w",
+    "start_heading": 0,
+    "target_infos": [
+        {
+            "panoid": "IN7h9bbZiPjjzEPoPc1g0w",
+            "name": "CVS",
+            "latitude": 40.72248740000001,
+            "longitude": -73.98790009999999,
+            "address": "196 Orchard St, New York",
+            "description": "CVS is located at 196 Orchard St, New York"
+        }
+    ],
+    "arrive_threshold": 75
+}
