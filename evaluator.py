@@ -109,8 +109,8 @@ class AgentEvaluator:
         result_text = scores.choices[0].message.content
         result_group = extract_scores(result_text)
         result = result_group
-        #print("Evaluation Results: ", result)
-        #print(type(result))
+        print("Evaluation Results: ", result)
+        print(type(result))
         return result
     
     def calculate_score_with_json(self, log_info:list[dict], shortest_step:list):
