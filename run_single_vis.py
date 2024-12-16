@@ -76,6 +76,14 @@ def step_button_click(current_step, step_change):
         return current_step
     return new_current_step
     
+def load_log_button_click(log_file):
+    global infos_state
+    with open(log_file, "r") as f:
+        infos_state = json.load(f)
+        
+    print(f"Task info: {infos_state[0]}")
+    infos_state = infos_state[1:]
+    return len(infos_state), gr.update(interactive=False)
 
 def update_current_step(current_step):
     global infos_state
@@ -102,7 +110,7 @@ def update_current_step(current_step):
             qa_messages.append(dict(role="user", content=question[i]))
             qa_messages.append(dict(role="assistant", content=answer[i]))
     else:
-        qa_messages = gr.skip()
+        qa_messages = gr.update(value=[])
         
     target_status = info["target_status"]
     target1_update = gr.update(value=target_status[0]) if 0<len(target_status) else gr.skip()    
@@ -144,10 +152,13 @@ task_config_selection = gr.Dropdown(value=[],label="Task Config", choices=task_c
 evaluator_config_choices = [file for file in os.listdir(evaluator_config_root) if "evaluator" in file]
 evaluator_config_selection = gr.Dropdown(value=["evaluator.json"],label="Evaluator Config", choices=evaluator_config_choices, max_choices=1, multiselect=True, interactive=True) 
     
+log_selection = gr.File(label="Log File", type="filepath", interactive=True)    
+    
 start_button = gr.Button("Start!")
 refresh_button = gr.Button("Refresh")
 last_step_button = gr.Button("Last Step")
 next_step_button = gr.Button("Next Step")
+load_log_button = gr.Button("Load Log")
 
 total_steps_num = gr.Number(label="Total Steps", value=0, interactive=False)
 current_step_num = gr.Number(label="Current Step", value=-1, interactive=False)
@@ -173,13 +184,18 @@ target3_checkbox = gr.Checkbox(label="Target 3", visible=False)
 target4_checkbox = gr.Checkbox(label="Target 4", visible=False)
 
 with gr.Blocks() as demo:
-    with gr.Row(equal_height=True):
-        navi_config_selection.render()
-        vision_config_selection.render()
-        map_config_selection.render()
-        task_config_selection.render()
-        evaluator_config_selection.render()
-        refresh_button.render()
+    with gr.Tab(label="Navigation Run"):
+        with gr.Row(equal_height=True):
+            navi_config_selection.render()
+            vision_config_selection.render()
+            map_config_selection.render()
+            task_config_selection.render()
+            evaluator_config_selection.render()
+            refresh_button.render()
+    with gr.Tab(label="Navigation Load"):
+        with gr.Row():
+            log_selection.render()
+            load_log_button.render()
     with gr.Row(equal_height=True):
         start_button.render()
         total_steps_num.render()
@@ -215,6 +231,8 @@ with gr.Blocks() as demo:
     start_button.click(fn=start_navigation, 
                        inputs=[navi_config_selection, vision_config_selection, map_config_selection, task_config_selection, evaluator_config_selection], 
                        outputs=[init_prompt_text, start_button, navi_config_selection, vision_config_selection, map_config_selection, task_config_selection, evaluator_config_selection, refresh_button, target1_checkbox, target2_checkbox, target3_checkbox, target4_checkbox]).then(run_navigation, inputs=None, outputs=[total_steps_num])
+    
+    load_log_button.click(fn=load_log_button_click, inputs=[log_selection], outputs=[total_steps_num, start_button])
     
     last_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(-1)], outputs=[current_step_num])
     next_step_button.click(fn=step_button_click, inputs=[current_step_num, gr.Number(1)], outputs=[current_step_num])
