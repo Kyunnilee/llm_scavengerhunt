@@ -404,21 +404,24 @@ class BaseNavigator:
         except Exception as e:
             return {"error": f"Failed to get information: {str(e)}"}
     
-    def _query_batch(self, panoids: List[str], info_type) -> List[str]:
+    def _query_batch_func(self, panoids: List[str], info_type) -> Callable:
         """
         info_type: 
         + Type of information wanted 
         + ('street' | 'neighbors' | 'landmarks' | 'attractions' | 'subway')
         """
-        results = []
-        for panoid in panoids:
-            if len(panoid) > 15:
-                time.sleep(0.2)
-            coord = self.graph.nodes[panoid].coordinate
-            results.append(
-                self._query_clue(coord[0], coord[1], info_type)
-            )
-        return results
+        def __func():
+            results = []
+            for panoid in panoids:
+                if len(panoid) > 15:
+                    time.sleep(0.2)
+                coord = self.graph.nodes[panoid].coordinate
+                results.append(
+                    self._query_clue(coord[0], coord[1], info_type)
+                )
+            return results
+
+        return __func()
 
     def check_arrival(self):
         '''
@@ -478,8 +481,8 @@ class BaseNavigator:
                 node_to=target_panoid, 
                 init_heading=curr_heading, 
             )
-        world_states["path_streets"] = self._query_batch(world_states["path_nodes"], info_type="street")
-        world_states["path_subways"] = self._query_batch(world_states["path_nodes"], info_type="subway")
+        world_states["path_streets"] = self._query_batch_func(world_states["path_nodes"], info_type="street")
+        world_states["path_subways"] = self._query_batch_func(world_states["path_nodes"], info_type="subway")
         world_states["path_len"] = len(world_states["path_nodes"])
 
         # 2. collect global location of curr and target

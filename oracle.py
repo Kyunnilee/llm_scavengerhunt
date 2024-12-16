@@ -127,13 +127,15 @@ class Oracle():
         Returns translated path (from list[str] to human friendly text)
         """
         path = self.latest_world_states["path_action"]
-        subways = self.latest_world_states["path_subways"]
-        streets = self.latest_world_states["path_streets"]
+        subways_query_func = self.latest_world_states["path_subways"]
+        streets_query_func = self.latest_world_states["path_streets"]
 
         input_message = openai_oracle.path_translate_prompts[f"level_{detail_level}"]
         if detail_level == 1:
             input_message = input_message.replace("<<<rel_target_pos>>>", self.latest_world_states["rel_target_pos"])
         elif detail_level in [2, 3]:
+            subways = subways_query_func()
+            streets = streets_query_func()
             path_text = ""
             curr_panoid_idx = 0
             for action in path:
