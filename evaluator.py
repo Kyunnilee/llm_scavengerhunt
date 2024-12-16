@@ -113,7 +113,8 @@ class AgentEvaluator:
         print(type(result))
         return result
     
-    def calculate_score_with_json(self, log_info:list[dict], shortest_step:list):
+    def calculate_score_with_json(self, log_info:list[dict]):
+        shortest_step = log_info[1]["shortest_path"]
         agent_response = []
         for i in range(1, len(log_info)):
             qa_messages = log_info[i].get("qa_messages")
@@ -134,6 +135,7 @@ class AgentEvaluator:
     def calculate_score(self, total_response:list[str], shortest_step:list, num_steps:int=1, num_q:int=0, debug=False):
         #num_questions, num_steps = self.evaluate_misc(total_response, shortest_step, num_steps, num_questions)
         num_questions_score, num_steps_score = num_q/num_steps, num_steps / shortest_step.count("forward")
+        print(f"num_questions_score: {num_questions_score}, num_steps_score: {num_steps_score}")
         action_score, justification_action = self.evaluate_response(["[ACTION]"] + total_response)
         proactive_score, justification_proactive = self.evaluate_response(["[Q_PROACTIVE]"] + total_response)
         clarification_score, justification_clarification = self.evaluate_response(["[Q_CLARIFICATION]"] + total_response)
@@ -146,7 +148,7 @@ class AgentEvaluator:
             print("Action Justification: ", justification_action)
             print("Question Score: ", question_score)
             print("Question Justification: ", justification_question)
-            print(f"num_questions_score: {num_questions_score}, num_steps_score: {num_steps_score}")
+            
         
         
         return num_questions_score, num_steps_score, action_score, question_score
@@ -198,10 +200,10 @@ if __name__=="__main__":
     "model": "gpt-4o-mini"
 }
     evaluator = AgentEvaluator(test_config)
-    with open("log_infos_5.json", "r") as file:
+    with open("log_infos_151.json", "r") as file:
         data = json.load(file)
     print(type(data))
-    print(evaluator.calculate_score_with_json(data, ["turn_around", "forward"]))
+    print(evaluator.calculate_score_with_json(data))
     
     # evaluator.calculate_score(sample_response, 1, debug=True)
     # text = "[action_reasoning_score] 5 [action_reasoning_score_end], \n[action_reasoning_score_justification] The agent consistently chooses the \"forward\" action based on the context provided, which consistently matches the available actions and leads to the next designated coordinates. There are no unreasonable assumptions or hallucinations; all decisions are logically supported by the given information. [action_reasoning_score_justification_end], \n[question_score] 1 [question_score_end], \n[question_score_ justification] The agent did not ask any questions throughout the navigation process, despite the potential to do so when it reached each decision point. This lack of inquiry indicates an absence of recognizing when additional information could be necessary, thereby demonstrating overly self-assured reasoning without the checks of asking for clarification or assistance. [question_score_ justification_end]"
