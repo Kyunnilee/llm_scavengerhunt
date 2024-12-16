@@ -42,6 +42,7 @@ except ImportError:
     print("Mistralai agent is not available in your environment. Not importing MistralaiAgent.")
 
 api_key = os.environ.get('GOOGLE_API_KEY')
+print(api_key)
 base_dir = os.getcwd() # Get cwd current working directory
 
 class Navigator(BaseNavigator):
@@ -306,7 +307,14 @@ class Navigator(BaseNavigator):
             shortest_path is not None and 
             forward_ctn is not None and 
             ask_ctn is not None):
-            num_question, num_steps, action_score, question_score = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, num_steps=forward_ctn, num_q=ask_ctn, debug=True)
+            try:
+                num_question, num_steps, action_score, question_score = self.evaluator.calculate_score(agent_response, shortest_step=shortest_path, num_steps=forward_ctn, num_q=ask_ctn, debug=True)
+            except Exception as e:
+                print(f"An error occurred while calculating the score: {e}")
+    
+                # Optionally set default values to avoid breaking later code
+                num_question = num_steps = action_score = question_score = None
+                
             self.log_info["metrics"] = {"num_question": num_question, 
                                         "num_steps": num_steps, 
                                         "action_score": action_score, 
