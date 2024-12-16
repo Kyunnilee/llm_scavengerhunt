@@ -348,6 +348,7 @@ class Navigator(BaseNavigator):
             forward_ctn = 0
             ask_ctn = 0
             agent_response = []
+            instruction_message = ""
             world_states, clues = self.collect_observations()
             shortest_path = world_states["path_action"]
             print("Path to Target: ", world_states["path_action"])
@@ -379,6 +380,7 @@ class Navigator(BaseNavigator):
                     image_urls = self.get_image_feature(self.graph_state)
                     self.log_info["image_urls"] = image_urls
                     message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_1) else NAVIGATION_LVL_1[instruction_ctn])
+                    instruction_message = message
                     instruction_ctn += 1
                     action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
                 
@@ -407,7 +409,7 @@ class Navigator(BaseNavigator):
                     if err_message != '':  # if has err, pass err message as help message
                         self.help_message = err_message
                         self.help_message += "\n"
-                        self.help_message += self.log_info["message"][0] # instruction message
+                        self.help_message += instruction_message # instruction message
                         
                 # update visualization
                 agent_vis_file = self.get_agent_vis(self.graph_state)
