@@ -101,6 +101,10 @@ class Oracle():
 
             answer = self.qa_agent.send_message(qa_prompt)
             print("[[Logs]]: Answer generated. Parsing and returning to testing agent...")
+        
+            print(f"[[Logs]]: question={question}")
+            print(f"[[Logs]]: answer={answer}")
+            
             answer = self._remove_thinking_content(answer)
             
         return answer

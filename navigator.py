@@ -175,7 +175,20 @@ class Navigator(BaseNavigator):
         return general_direction, target_summary
          
     def send_message(self, message: str, files=[]):
-        return self.client.send_message(message, files)
+        try:
+            ans = self.client.send_message(message, files)
+        except:
+            time.sleep(3) # to avoid overloaded requests
+
+            try:
+                ans = self.client.send_message(message, files)
+            except Exception as e:
+                print(e)
+                print(message)
+                print(files)
+                raise e
+        
+        return ans
     
     def parse_action(self, action_message: str):
         '''
@@ -436,7 +449,7 @@ class Navigator(BaseNavigator):
 
             try:
                 # save record
-                self.log_info["over"] = "Error"
+                self.log_info["over"] = f"Error: {e}"
                 self.navigation_log(step, 
                                     agent_response=agent_response, 
                                     shortest_path=shortest_path, 
@@ -483,6 +496,7 @@ def main(args):
     task = navigator.forward()
     
     while True:
+        # time.sleep(1)
         info = next(task)
         print(info)
         action = info["action"]
