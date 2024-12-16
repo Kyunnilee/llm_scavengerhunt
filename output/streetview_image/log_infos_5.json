@@ -1,0 +1,182 @@
+[
+    {
+        "config": "config\\navi\\gemini_15flash_navi.json",
+        "map_config": {
+            "node": "touchdown/graph/nodes.txt",
+            "link": "touchdown/graph/links.txt"
+        },
+        "task_config": {
+            "start_node": "5lKB4jIlJQLonkXndVCqXQ",
+            "start_heading": 0,
+            "target_infos": [
+                {
+                    "panoid": "bznlzDHft4F5BtZJ4edq5w",
+                    "name": "McDonald's",
+                    "latitude": 40.7460246,
+                    "longitude": -73.99089210000001,
+                    "address": "809 Ave of the Americas, New York",
+                    "description": "McDonald's is located at 809 Ave of the Americas, New York",
+                    "status": true
+                }
+            ],
+            "arrive_threshold": 75
+        }
+    },
+    {
+        "step": 0,
+        "log_root": "output\\logs\\20241214-000417_logs",
+        "current_state": [
+            "5lKB4jIlJQLonkXndVCqXQ",
+            34
+        ],
+        "agent_vis": "output\\logs\\20241214-000417_logs\\agent_vis\\step_1.png",
+        "image_urls": [
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=304&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=349&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=34&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=79&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=124&pitch=0&source=outdoor"
+        ],
+        "action": "start",
+        "action_message": "start",
+        "message": [
+            "**Role Instructions**: You are a navigation agent participating in a scavenger hunt game. Your objective is to locate a designated destination as efficiently as possible using the information provided at each step. Analyze visual and positional data carefully, decide on strategic actions to move closer to the goal, and make fully use of QA-system, ask questions to gather information you need.\n---\n**Task Rules**:\n1. **Input Information**: At each step, you will receive the following:\n   - **Current Position**: Your current location described textually.\n   - **Current Heading**: A number between -180 and 180 indicating the direction you are facing (0 = North, 90 = East, 180 = South, -90 = West).\n   - **Visual Information**: Five street view images corresponding to your surroundings:\n     - **Left**: 90 degrees counter-clockwise from your heading.\n     - **Left-forward**: 45 degrees counter-clockwise from your heading.\n     - **Front**: Aligned with your heading.\n     - **Right-forward**: 45 degrees clockwise from your heading.\n     - **Right**: 90 degrees clockwise from your heading.\n2. **Available Actions**:\n   - **forward**: Move one step forward to a new position.\n   - **left**/**right**/**turn_around**: Change your heading at the current position.\n   - **ask**: Ask QA-system a question for additional information. The content of the information depends on the question you ask, such as destination or environment. (Note): When you choose **ask**, you do not need to formulate a specific question immediately. Instead, this action signals your intent to gather information, and the system will provide an opportunity in the next step to clarify and specify the question.\n   - **stop**: Indicate that you have reached the destination or its vicinity.\n3. **Action-Specific Guidance**:\n   - If your action is **ask**, your current response should include only the decision `[Action: ask]` without crafting the specific question.\n   - The system will return a prompt in the next round for you to organize your question based on updated context and observations. This ensures your question is targeted and relevant.\n4. **Success Condition**: The task is considered successful if you choose **stop** when the destination is nearby.\n---\n**Strategy**:\n- Analyze the provided positional and visual data thoroughly before making any decision.\n- If unsure about the destination's location, use **ask** to gather essential information. Don't explore aimlessly, make good use of the QA-system as well as visual information, and use questions to get the information you need most at the moment! \n- Prioritize efficient movements and strategic questioning to achieve the goal with minimal steps.\n- It is recommended to ask questions at the beginning to determine the direction of the target before starting to move.\n---\n**Output Format**:\n1. **Analysis**: Summarize key observations (e.g., visible landmarks, directional clues, or features relevant to the target).\n2. **Reasoning**: Briefly explain the logic behind your chosen action.\n3. **Decision**: Format your action as `[Action: forward/left/right/turn_around/ask/stop]`, e.g., `[Action: ask]`.\n---\n**Current Target**: McDonald's"
+        ],
+        "target_status": [
+            false
+        ]
+    },
+    {
+        "step": 1,
+        "log_root": "output\\logs\\20241214-000417_logs",
+        "image_urls": [
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=304&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=349&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=34&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=79&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=124&pitch=0&source=outdoor"
+        ],
+        "message": [
+            "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right.\nYou can take following action, only these actions are available in this position: \n[Action: forward], go to the new position in front of you.\n[Action: turn_around], turn to new direction in same position.\n[Action: ask], ask for more information.\n[Action: stop], report arrival.\n",
+            "Your closest McDonald's is located at 809 Avenue of the Americas, New York. It is situated to your back and is approximately 83 meters away from your current position.\nIf you have further questions, please reply [Action: ask] now, then give you question in the next round."
+        ],
+        "action": "turn_around",
+        "action_message": "**1. Analysis:**\n\nI now know the location of the nearest McDonald's and its distance and direction relative to my current position.  It's behind me, approximately 83 meters away.\n\n**2. Reasoning:**\n\nTo reach the McDonald's, I need to turn around and then move forward.\n\n**3. Decision:**\n\n`[Action: turn_around]`\n",
+        "qa_messages": {
+            "question": [
+                "ask",
+                "What is the closest McDonald's to my current location (as shown in the provided images), and what is its direction and approximate distance from my current position?\n"
+            ],
+            "answer": [
+                "What is your question? \nJust tell me your question, don't give action this time.\n",
+                "Your closest McDonald's is located at 809 Avenue of the Americas, New York. It is situated to your back and is approximately 83 meters away from your current position.\nIf you have further questions, please reply [Action: ask] now, then give you question in the next round."
+            ]
+        },
+        "current_state": [
+            "5lKB4jIlJQLonkXndVCqXQ",
+            -142
+        ],
+        "agent_vis": "output\\logs\\20241214-000417_logs\\agent_vis\\step_3.png",
+        "target_status": [
+            false
+        ]
+    },
+    {
+        "step": 2,
+        "log_root": "output\\logs\\20241214-000417_logs",
+        "image_urls": [
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=128&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=173&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=218&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=263&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746652,-73.990055&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=308&pitch=0&source=outdoor"
+        ],
+        "message": [
+            "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right.\nYou can take following action, only these actions are available in this position: \n[Action: forward], go to the new position in front of you.\n[Action: turn_around], turn to new direction in same position.\n[Action: ask], ask for more information.\n[Action: stop], report arrival.\n"
+        ],
+        "action": "forward",
+        "action_message": "**1. Analysis:**\n\nAfter turning around, the McDonald's should now be in front of me. The images show a city street with various shops and buildings; there's no McDonald's clearly visible yet.  The distance was given as approximately 83 meters which is a reasonable walking distance.\n\n**2. Reasoning:**\n\nGiven that the McDonald's is 83 meters away and in the direction I'm now facing, I will move forward several steps to get a closer view and confirm its location.\n\n**3. Decision:**\n\n`[Action: forward]`\n",
+        "current_state": [
+            "DppYEKjV-K4Z-xFkjNrhmg",
+            -143
+        ],
+        "agent_vis": "output\\logs\\20241214-000417_logs\\agent_vis\\step_4.png",
+        "target_status": [
+            false
+        ]
+    },
+    {
+        "step": 3,
+        "log_root": "output\\logs\\20241214-000417_logs",
+        "image_urls": [
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746566,-73.99012&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=127&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746566,-73.99012&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=172&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746566,-73.99012&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=217&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746566,-73.99012&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=262&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746566,-73.99012&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=307&pitch=0&source=outdoor"
+        ],
+        "message": [
+            "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right.\nYou can take following action, only these actions are available in this position: \n[Action: forward], go to the new position in front of you.\n[Action: turn_around], turn to new direction in same position.\n[Action: ask], ask for more information.\n[Action: stop], report arrival.\n"
+        ],
+        "action": "forward",
+        "action_message": "**1. Analysis:**\n\nThe new images still don't show a McDonald's.  I've moved closer, but it's not immediately visible.  The given distance of 83 meters suggests I should be very near.\n\n**2. Reasoning:**\n\nSince I'm close, and I don't see McDonald's, I will move forward one more step to improve my view, but I will be prepared to stop if I have still not found it at this point.  It may be around a corner, or slightly obscured by other buildings.\n\n**3. Decision:**\n\n`[Action: forward]`\n",
+        "current_state": [
+            "B-2Kpg24aVXJDZ4G1kt40w",
+            -143
+        ],
+        "agent_vis": "output\\logs\\20241214-000417_logs\\agent_vis\\step_5.png",
+        "target_status": [
+            false
+        ]
+    },
+    {
+        "step": 4,
+        "log_root": "output\\logs\\20241214-000417_logs",
+        "image_urls": [
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746487,-73.990179&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=127&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746487,-73.990179&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=172&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746487,-73.990179&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=217&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746487,-73.990179&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=262&pitch=0&source=outdoor",
+            "https://maps.googleapis.com/maps/api/streetview?size=450x450&location=40.746487,-73.990179&key=AIzaSyBZdkQTQnrPBtfpmlPh5-Ngs5vdMO2Xy80&fov=90&heading=307&pitch=0&source=outdoor"
+        ],
+        "message": [
+            "The five images below show the view in different directions, they are on your left, front-left, front, front-right, and right.\nYou can take following action, only these actions are available in this position: \n[Action: forward], go to the new position in front of you.\n[Action: turn_around], turn to new direction in same position.\n[Action: ask], ask for more information.\n[Action: stop], report arrival.\n",
+            "I'm unable to provide specific visual descriptions or details about prominent buildings or signage. However, the McDonald's at 809 Avenue of the Americas is closest to the intersection of Avenue of the Americas and West 28th Street. Focus on that intersection to help you identify the location.\nIf you have further questions, please reply [Action: ask] now, then give you question in the next round."
+        ],
+        "action": "stop",
+        "action_message": "**1. Analysis:**\n\nI now have a more precise location: the intersection of Avenue of the Americas and West 28th Street.  This should significantly improve my chances of finding the McDonald's.\n\n**2. Reasoning:**\n\nMy previous movements haven't revealed the McDonald's, so I need to reassess my position and direction using the intersection as a reference point.  It might be on a side street or slightly set back from the main intersection.  I'll stop and use the new information to check my surroundings thoroughly.\n\n\n**3. Decision:**\n\n`[Action: stop]`\n",
+        "qa_messages": {
+            "question": [
+                "ask",
+                "Can you please confirm the exact cross street or intersection closest to the McDonald's at 809 Avenue of the Americas, and provide a visual description (e.g., prominent buildings or signage) that would help me identify the location?\n"
+            ],
+            "answer": [
+                "What is your question? \nJust tell me your question, don't give action this time.\n",
+                "I'm unable to provide specific visual descriptions or details about prominent buildings or signage. However, the McDonald's at 809 Avenue of the Americas is closest to the intersection of Avenue of the Americas and West 28th Street. Focus on that intersection to help you identify the location.\nIf you have further questions, please reply [Action: ask] now, then give you question in the next round."
+            ]
+        },
+        "current_state": [
+            "B-2Kpg24aVXJDZ4G1kt40w",
+            -143
+        ],
+        "agent_vis": "output\\logs\\20241214-000417_logs\\agent_vis\\step_7.png",
+        "target_status": [
+            true
+        ],
+        "arrival_info": [
+            {
+                "name": "McDonald's",
+                "panoid": "bznlzDHft4F5BtZJ4edq5w",
+                "status": true
+            }
+        ],
+        "metrics": {
+            "num_question": 1.0,
+            "num_steps": 0.18181818181818182,
+            "action_score": "5",
+            "question_score": "4"
+        },
+        "forward_ctn": 2,
+        "ask_ctn": 2
+    }
+]

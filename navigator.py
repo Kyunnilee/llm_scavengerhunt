@@ -302,8 +302,7 @@ class Navigator(BaseNavigator):
         agent_vis_file = self.visualization.update(panoid, candidate_nodeid)
         return agent_vis_file
     
-    def navigation_log(self, step, agent_response=None, shortest_path=None, forward_ctn=None, ask_ctn=None):
-        
+    def navigation_log(self, step, agent_response=None, shortest_path=None, forward_ctn=None, ask_ctn=None, save_json=True):
         if (agent_response is not None and 
             shortest_path is not None and 
             forward_ctn is not None and 
@@ -327,105 +326,128 @@ class Navigator(BaseNavigator):
         logs_save = self.log_infos
         logs_save.append(self.log_info)
         
-        with open(os.path.join(self.log_root, f"log_infos_{step}.json"), 'w') as f:
-            json.dump(logs_save, f)    
+        if save_json:
+            with open(os.path.join(self.log_root, f"log_infos_{step}.json"), 'w') as f:
+                json.dump(logs_save, f)    
         
         return self.log_info
 
     def forward(self): 
-        start_graph_state = (self.start_node, self.task_config.get("start_heading", 0))
-        self.graph_state = start_graph_state
-        self.graph_state = self.fix_heading(self.graph_state)
-        print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")
-        self.help_message = None
-        self.visualization.init_current_node(self.graph_state[0])
+        try:
+            start_graph_state = (self.start_node, self.task_config.get("start_heading", 0))
+            self.graph_state = start_graph_state
+            self.graph_state = self.fix_heading(self.graph_state)
+            print(f"[forward] Heading {start_graph_state[1]} -> {self.graph_state[1]}")
+            self.help_message = None
+            self.visualization.init_current_node(self.graph_state[0])
 
-        
-        # initial state
-        step = 0
-        instruction_ctn = 0
-        forward_ctn = 0
-        ask_ctn = 0
-        agent_response = []
-        world_states, clues = self.collect_observations()
-        shortest_path = world_states["path_action"]
-        print("Path to Target: ", world_states["path_action"])
+            
+            # initial state
+            step = 0
+            instruction_ctn = 0
+            forward_ctn = 0
+            ask_ctn = 0
+            agent_response = []
+            world_states, clues = self.collect_observations()
+            shortest_path = world_states["path_action"]
+            print("Path to Target: ", world_states["path_action"])
 
-        self.log_info = {'step': step, 'log_root': self.log_root}
-        self.log_info["current_state"] = self.graph_state
-        self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
-        self.log_info["image_urls"] = self.get_image_feature(self.graph_state)
-        self.log_info["action"] = "start"
-        self.log_info["action_message"] = "start"
-        self.log_info["shortest_path"] = shortest_path
-        
-        self.log_info["message"] = [self.config["policy"]]
-        self.log_info["target_status"] = [info["status"] for info in self.target_infos]
-        yield self.log_info
-        
-        step += 1
-        while True:     
-            if step > self.log_info['step']: # new state, reset log_info
-                self.log_infos.append(self.log_info)
-                self.log_info = {'step': step, 'log_root': self.log_root, 'image_urls': self.log_info['image_urls']}
-            
-            # get action/move
-            if self.help_message: # is asking for help, previous action is ask
-                message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
-                self.help_message = None
-                action, action_message = self.get_navigation_action([], message, mode=self.action_mode)
-            else:
-                image_urls = self.get_image_feature(self.graph_state)
-                self.log_info["image_urls"] = image_urls
-                message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_1) else NAVIGATION_LVL_1[instruction_ctn])
-                instruction_ctn += 1
-                action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
-            
-            agent_response.append(("Context: " + message, "Agent Action: " + action, "Agent Response: " + action_message))
-            forward_ctn += 1 if action == "forward" else 0
-            ask_ctn += 1 if action == "ask" else 0
-            self.log_info["forward_ctn"] = forward_ctn
-            self.log_info["ask_ctn"] = ask_ctn
-            
-            if 'message' not in self.log_info:
-                self.log_info['message'] = []
-            self.log_info["message"].append(message)
-            self.log_info["action"] = action
-            self.log_info["action_message"] = action_message
-                
-            if action == 'ask':
-                if 'qa_messages' not in self.log_info:
-                    self.log_info['qa_messages'] = {'question': [], 'answer': []}
-                self.log_info['qa_messages']['question'].append('ask')
-                self.help_message = self.ask_for_help(mode=self.action_mode)
-                self.help_message += "\n" + "If you have further questions, please reply [Action: ask] now, then give you question in the next round."
-                self.log_info['qa_messages']['answer'].append(self.help_message)
-            else:
-                step += 1
-                err_message = self.step(action)
-                if err_message != '':  # if has err, pass err message as help message
-                    self.help_message = err_message
-                    self.help_message += "\n"
-                    self.help_message += self.log_info["message"][0] # instruction message
-                    
-            # update visualization
-            agent_vis_file = self.get_agent_vis(self.graph_state)
+            self.log_info = {'step': step, 'log_root': self.log_root}
             self.log_info["current_state"] = self.graph_state
-            self.log_info["agent_vis"] = agent_vis_file
+            self.log_info["agent_vis"] = self.get_agent_vis(self.graph_state)
+            self.log_info["image_urls"] = self.get_image_feature(self.graph_state)
+            self.log_info["action"] = "start"
+            self.log_info["action_message"] = "start"
+            self.log_info["shortest_path"] = shortest_path
+            
+            self.log_info["message"] = [self.config["policy"]]
             self.log_info["target_status"] = [info["status"] for info in self.target_infos]
-                                    
-            if self.show_info: 
-                print(self.show_state_info(self.graph_state))
-                
-            # if achive all target or reach max step, end the navigation
-            if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
-                print("DONE")
-                self.navigation_log(step, agent_response=agent_response, shortest_path=shortest_path, forward_ctn=forward_ctn, ask_ctn=ask_ctn)
-                    
-                self.log_info["over"] = True
-                
-                    
             yield self.log_info
+            
+            step += 1
+            while True:     
+                if step > self.log_info['step']: # new state, reset log_info
+                    self.log_infos.append(self.log_info)
+                    self.log_info = {'step': step, 'log_root': self.log_root, 'image_urls': self.log_info['image_urls']}
+                
+                # get action/move
+                if self.help_message: # is asking for help, previous action is ask
+                    message = self.get_navigation_instructions(self.help_message, phase="help") # message = help_message
+                    self.help_message = None
+                    action, action_message = self.get_navigation_action([], message, mode=self.action_mode)
+                else:
+                    image_urls = self.get_image_feature(self.graph_state)
+                    self.log_info["image_urls"] = image_urls
+                    message = self.get_navigation_instructions(supp_instructions= "" if instruction_ctn >= len(NAVIGATION_LVL_1) else NAVIGATION_LVL_1[instruction_ctn])
+                    instruction_ctn += 1
+                    action, action_message = self.get_navigation_action(image_urls, message, mode=self.action_mode)
+                
+                agent_response.append(("Context: " + message, "Agent Action: " + action, "Agent Response: " + action_message))
+                forward_ctn += 1 if action == "forward" else 0
+                ask_ctn += 1 if action == "ask" else 0
+                self.log_info["forward_ctn"] = forward_ctn
+                self.log_info["ask_ctn"] = ask_ctn
+                
+                if 'message' not in self.log_info:
+                    self.log_info['message'] = []
+                self.log_info["message"].append(message)
+                self.log_info["action"] = action
+                self.log_info["action_message"] = action_message
+                    
+                if action == 'ask':
+                    if 'qa_messages' not in self.log_info:
+                        self.log_info['qa_messages'] = {'question': [], 'answer': []}
+                    self.log_info['qa_messages']['question'].append('ask')
+                    self.help_message = self.ask_for_help(mode=self.action_mode)
+                    self.help_message += "\n" + "If you have further questions, please reply [Action: ask] now, then give you question in the next round."
+                    self.log_info['qa_messages']['answer'].append(self.help_message)
+                else:
+                    step += 1
+                    err_message = self.step(action)
+                    if err_message != '':  # if has err, pass err message as help message
+                        self.help_message = err_message
+                        self.help_message += "\n"
+                        self.help_message += self.log_info["message"][0] # instruction message
+                        
+                # update visualization
+                agent_vis_file = self.get_agent_vis(self.graph_state)
+                self.log_info["current_state"] = self.graph_state
+                self.log_info["agent_vis"] = agent_vis_file
+                self.log_info["target_status"] = [info["status"] for info in self.target_infos]
+                                        
+                if self.show_info: 
+                    print(self.show_state_info(self.graph_state))
+                    
+                # if achive all target or reach max step, end the navigation
+                if (action == 'stop' and self.check_arrival_all()) or step > self.max_step:
+                    print("DONE")
+                    self.log_info["over"] = True
+                    self.navigation_log(step, 
+                                        agent_response=agent_response, 
+                                        shortest_path=shortest_path, 
+                                        forward_ctn=forward_ctn, 
+                                        ask_ctn=ask_ctn, 
+                                        save_json=True)
+            
+                yield self.log_info
+
+        except Exception as e:
+            print(f"Task failed due to {e}")
+
+            try:
+                # save record
+                self.log_info["over"] = "Error"
+                self.navigation_log(step, 
+                                    agent_response=agent_response, 
+                                    shortest_path=shortest_path, 
+                                    forward_ctn=forward_ctn, 
+                                    ask_ctn=ask_ctn, 
+                                    save_json=True)
+            except:
+                print(f"Error happened before logging started. No log output generated")
+            
+            raise e
+
         
 def show_graph_info(graph):
     max_neighbors = 0

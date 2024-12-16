@@ -505,16 +505,36 @@ class BaseNavigator:
         world_states["target_name"] = self.target_infos[0]["name"]
 
         # 1. add current location clues
-        clues["curr_nearby_landmarks"] = self._query_clue(curr_coord[0], curr_coord[1], "landmarks")["landmarks"]
-        clues["curr_nearby_attractions"] = self._query_clue(curr_coord[0], curr_coord[1], "attractions")["attractions"]
-        clues["curr_nearby_neighbors"] = self._query_clue(curr_coord[0], curr_coord[1], "neighbors")["neighbors"]
-        clues["curr_street"] = self._query_clue(curr_coord[0], curr_coord[1], "street")["street"]
+        try:
+            res = self._query_clue(curr_coord[0], curr_coord[1], "landmarks")
+            clues["curr_nearby_landmarks"] = res["landmarks"]
+
+            res = self._query_clue(curr_coord[0], curr_coord[1], "attractions")
+            clues["curr_nearby_attractions"] = res["attractions"]
+
+            res = self._query_clue(curr_coord[0], curr_coord[1], "neighbors")
+            clues["curr_nearby_neighbors"] = res["neighbors"]
+
+            res = self._query_clue(curr_coord[0], curr_coord[1], "street")
+            clues["curr_street"] = res["street"]
+
+            # 2. add target location clues
+            res = self._query_clue(target_coord[0], target_coord[1], "landmarks")
+            clues["target_nearby_landmarks"] = res["landmarks"]
+
+            res = self._query_clue(target_coord[0], target_coord[1], "attractions")
+            clues["target_nearby_attractions"] = res["attractions"]
+
+            res = self._query_clue(target_coord[0], target_coord[1], "neighbors")
+            clues["target_nearby_neighbors"] = res["neighbors"]
+
+            res = self._query_clue(target_coord[0], target_coord[1], "street")
+            clues["target_street"] = res["street"]
         
-        # 2. add target location clues
-        clues["target_nearby_landmarks"] = self._query_clue(target_coord[0], target_coord[1], "landmarks")["landmarks"]
-        clues["target_nearby_attractions"] = self._query_clue(target_coord[0], target_coord[1], "attractions")["attractions"]
-        clues["target_nearby_neighbors"] = self._query_clue(target_coord[0], target_coord[1], "neighbors")["neighbors"]
-        clues["target_street"] = self._query_clue(target_coord[0], target_coord[1], "street")["street"]
+        except Exception as e:
+            print(res)
+            print(f"Query failed.")
+            raise e
         
         return world_states, clues
 
