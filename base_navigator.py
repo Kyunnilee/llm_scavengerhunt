@@ -421,7 +421,7 @@ class BaseNavigator:
                 )
             return results
 
-        return __func()
+        return __func
 
     def check_arrival(self):
         '''
@@ -460,6 +460,37 @@ class BaseNavigator:
         for info in self.target_infos:
             arrival_info.append({"name": info["name"], "panoid": info["panoid"], "status": info["status"]})
         return arrival_info
+
+    def collect_persistent_observations(self):
+        '''
+        Collect all related world states as input of QA agent
+        '''
+        clues: Dict[str, Any] = {}
+
+        target_panoid = self.target_infos[0]["panoid"]  
+        target_coord = self.graph.nodes[target_panoid].coordinate
+
+        # 1. add target location clues
+        try:
+            res = self._query_clue(target_coord[0], target_coord[1], "landmarks")
+            clues["target_nearby_landmarks"] = res["landmarks"]
+
+            res = self._query_clue(target_coord[0], target_coord[1], "attractions")
+            clues["target_nearby_attractions"] = res["attractions"]
+
+            res = self._query_clue(target_coord[0], target_coord[1], "neighbors")
+            clues["target_nearby_neighbors"] = res["neighbors"]
+
+            res = self._query_clue(target_coord[0], target_coord[1], "street")
+            clues["target_street"] = res["street"]
+        
+        except Exception as e:
+            print(res)
+            print(f"Query failed.")
+            raise e
+        
+        return clues
+
 
     def collect_observations(self):
         '''
@@ -520,19 +551,6 @@ class BaseNavigator:
 
             res = self._query_clue(curr_coord[0], curr_coord[1], "street")
             clues["curr_street"] = res["street"]
-
-            # 2. add target location clues
-            res = self._query_clue(target_coord[0], target_coord[1], "landmarks")
-            clues["target_nearby_landmarks"] = res["landmarks"]
-
-            res = self._query_clue(target_coord[0], target_coord[1], "attractions")
-            clues["target_nearby_attractions"] = res["attractions"]
-
-            res = self._query_clue(target_coord[0], target_coord[1], "neighbors")
-            clues["target_nearby_neighbors"] = res["neighbors"]
-
-            res = self._query_clue(target_coord[0], target_coord[1], "street")
-            clues["target_street"] = res["street"]
         
         except Exception as e:
             print(res)

@@ -16,6 +16,7 @@ class Oracle():
         self.eval_agent = None
         self.translate_path_agent = None
 
+        self.persistent_clues = None
         self.latest_world_states = None
         self.latest_clues = None
 
@@ -42,6 +43,9 @@ class Oracle():
             self.path_translate_agent = OpenAIAgent(cfg_translate)
 
             print(f"Loaded QA Prompts from {openai_oracle.__file__}")
+
+    def update_persistent_observations(self, clues):
+        self.persistent_clues = clues
 
     def update_observations(self, world_states, clues):
         """
@@ -92,12 +96,12 @@ class Oracle():
             qa_prompt = qa_prompt.replace("<<<curr_street>>>", self.latest_clues["curr_street"])
             
             qa_prompt = qa_prompt.replace("<<<target_nearby_landmarks>>>", 
-                                          self._parse_nearby_objects(self.latest_clues["target_nearby_landmarks"]))
+                                          self._parse_nearby_objects(self.persistent_clues["target_nearby_landmarks"]))
             qa_prompt = qa_prompt.replace("<<<target_nearby_attractions>>>", 
-                                          self._parse_nearby_objects(self.latest_clues["target_nearby_attractions"]))
+                                          self._parse_nearby_objects(self.persistent_clues["target_nearby_attractions"]))
             qa_prompt = qa_prompt.replace("<<<target_nearby_neighbors>>>", 
-                                          self._parse_nearby_objects(self.latest_clues["target_nearby_neighbors"]))
-            qa_prompt = qa_prompt.replace("<<<target_street>>>", self.latest_clues["target_street"])
+                                          self._parse_nearby_objects(self.persistent_clues["target_nearby_neighbors"]))
+            qa_prompt = qa_prompt.replace("<<<target_street>>>", self.persistent_clues["target_street"])
 
             answer = self.qa_agent.send_message(qa_prompt)
             print("[[Logs]]: Answer generated. Parsing and returning to testing agent...")

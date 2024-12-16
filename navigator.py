@@ -354,7 +354,6 @@ class Navigator(BaseNavigator):
             self.help_message = None
             self.visualization.init_current_node(self.graph_state[0])
 
-            
             # initial state
             step = 0
             instruction_ctn = 0
@@ -364,6 +363,10 @@ class Navigator(BaseNavigator):
             world_states, clues = self.collect_observations()
             shortest_path = world_states["path_action"]
             print("Path to Target: ", world_states["path_action"])
+
+            self.oracle.update_persistent_observations(
+                self.collect_persistent_observations()
+            )
 
             self.log_info = {'step': step, 'log_root': self.log_root}
             self.log_info["current_state"] = self.graph_state
