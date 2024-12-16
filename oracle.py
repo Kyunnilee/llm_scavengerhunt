@@ -16,6 +16,7 @@ class Oracle():
         self.eval_agent = None
         self.translate_path_agent = None
 
+        self.persistent_clues = None
         self.latest_world_states = None
         self.latest_clues = None
 
@@ -42,6 +43,9 @@ class Oracle():
             self.path_translate_agent = OpenAIAgent(cfg_translate)
 
             print(f"Loaded QA Prompts from {openai_oracle.__file__}")
+
+    def update_persistent_observations(self, clues):
+        self.persistent_clues = clues
 
     def update_observations(self, world_states, clues):
         """
@@ -92,15 +96,19 @@ class Oracle():
             qa_prompt = qa_prompt.replace("<<<curr_street>>>", self.latest_clues["curr_street"])
             
             qa_prompt = qa_prompt.replace("<<<target_nearby_landmarks>>>", 
-                                          self._parse_nearby_objects(self.latest_clues["target_nearby_landmarks"]))
+                                          self._parse_nearby_objects(self.persistent_clues["target_nearby_landmarks"]))
             qa_prompt = qa_prompt.replace("<<<target_nearby_attractions>>>", 
-                                          self._parse_nearby_objects(self.latest_clues["target_nearby_attractions"]))
+                                          self._parse_nearby_objects(self.persistent_clues["target_nearby_attractions"]))
             qa_prompt = qa_prompt.replace("<<<target_nearby_neighbors>>>", 
-                                          self._parse_nearby_objects(self.latest_clues["target_nearby_neighbors"]))
-            qa_prompt = qa_prompt.replace("<<<target_street>>>", self.latest_clues["target_street"])
+                                          self._parse_nearby_objects(self.persistent_clues["target_nearby_neighbors"]))
+            qa_prompt = qa_prompt.replace("<<<target_street>>>", self.persistent_clues["target_street"])
 
             answer = self.qa_agent.send_message(qa_prompt)
             print("[[Logs]]: Answer generated. Parsing and returning to testing agent...")
+        
+            print(f"[[Logs]]: question={question}")
+            print(f"[[Logs]]: answer={answer}")
+            
             answer = self._remove_thinking_content(answer)
             
         return answer
@@ -123,13 +131,15 @@ class Oracle():
         Returns translated path (from list[str] to human friendly text)
         """
         path = self.latest_world_states["path_action"]
-        subways = self.latest_world_states["path_subways"]
-        streets = self.latest_world_states["path_streets"]
+        subways_query_func = self.latest_world_states["path_subways"]
+        streets_query_func = self.latest_world_states["path_streets"]
 
         input_message = openai_oracle.path_translate_prompts[f"level_{detail_level}"]
         if detail_level == 1:
             input_message = input_message.replace("<<<rel_target_pos>>>", self.latest_world_states["rel_target_pos"])
         elif detail_level in [2, 3]:
+            subways = subways_query_func()
+            streets = streets_query_func()
             path_text = ""
             curr_panoid_idx = 0
             for action in path:
