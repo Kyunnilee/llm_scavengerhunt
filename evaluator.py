@@ -4,6 +4,8 @@ import json
 import ast
 import re
 
+from graph_loader import GraphLoader, haversine
+
 api_key=os.environ.get("OPENAI_API_KEY")
 TODO = ""
 
@@ -115,6 +117,13 @@ class AgentEvaluator:
     
     def calculate_score_with_json(self, log_info:list[dict]):
         shortest_step = log_info[1]["shortest_path"]
+        map_config = log_info[0]["map_config"]
+        task_config = log_info[0]["task_config"]
+        graph = GraphLoader(map_config).construct_graph()
+        arrive_threshold = task_config["arrive_threshold"]
+        target_position = (task_config["target_infos"][0]["latitude"], task_config["target_infos"][0]["longitude"])
+        
+        stop_positions = []
         agent_response = []
         for i in range(1, len(log_info)):
             qa_messages = log_info[i].get("qa_messages")
@@ -128,9 +137,23 @@ class AgentEvaluator:
             action = log_info[i]["action"]
             action_message = log_info[i]["action_message"]
             agent_response.append(("Context: " + message, "Agent Action: " + action, "Agent Response: " + action_message))
+            
+            if action == "stop":
+                panoid = log_info[i]["current_state"][0]
+                stop_positions.append(graph.get_node_coordinates(panoid))
+                
         num_steps = log_info[-1]["forward_ctn"]
         num_q = log_info[-1]["ask_ctn"]
-        return self.calculate_score(agent_response, shortest_step, num_steps=num_steps, num_q=num_q, debug=True)
+        result = {
+            "num_questions_score": 0,
+            "num_steps_score": 0,
+            "action_score": 0,
+            "question_score": 0,
+            "stop_distance_score": 0
+        }
+        result["num_questions_score"], result["num_steps_score"], result["action_score"], result["question_score"] = self.calculate_score(agent_response, shortest_step, num_steps=num_steps, num_q=num_q, debug=True)
+        result["stop_distance_score"] = self.calculate_stop_distance(stop_positions, target_position, arrive_threshold)
+        return result
 
     def calculate_score(self, total_response:list[str], shortest_step:list, num_steps:int=1, num_q:int=0, debug=False):
         #num_questions, num_steps = self.evaluate_misc(total_response, shortest_step, num_steps, num_questions)
@@ -152,6 +175,13 @@ class AgentEvaluator:
         
         
         return num_questions_score, num_steps_score, action_score, question_score
+    
+    def calculate_stop_distance(self, stop_positions, target_position, arrive_threshold):
+        distance = 0
+        for stop_position in stop_positions:
+            distance += max(0, haversine(stop_position, target_position) - arrive_threshold)
+        return distance/len(stop_positions)
+        
 '''
 Actions Taken:
 Hallucination: Are the agent's actions completely based on the information it was given? Does it make any unstated or unreasonable assumptions?
@@ -200,7 +230,7 @@ if __name__=="__main__":
     "model": "gpt-4o-mini"
 }
     evaluator = AgentEvaluator(test_config)
-    with open("log_infos_151.json", "r") as file:
+    with open(r"output\experiments_1215\gemini_15flash_task_bakery_middle\logs\20241215-215555_logs\log_infos_61.json", "r") as file:
         data = json.load(file)
     print(type(data))
     print(evaluator.calculate_score_with_json(data))
