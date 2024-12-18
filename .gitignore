@@ -7,4 +7,5 @@ tmp
 *.png
 output/logs
 output/logs_backup
+output/logs_classified
 output/experiments
