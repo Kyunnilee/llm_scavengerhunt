@@ -2,7 +2,7 @@
 
 [Sihan Ren](https://github.com/Tabiiiqwq), [Siyuan Xie](https://simonxie2004.github.io/about/), [Jae Won Kim](https://github.com/richard21a), [Zitong Hu](https://github.com/pyotrhu), [Heekyung Lee](https://github.com/Kyunnilee), [Markus En Cheng Lim](https://github.com/mcxpm)
 
-[Paper](paper/194_Scavenger_Hunt_Submission.pdf) | [Extended Abstract](paper/Extended_Abstract.pdf)| [Video](https://drive.google.com/drive/folders/1I0CfSKPIilZk__pB_aDKOydfYclBj1Wo) | [Slides](https://drive.google.com/drive/folders/1I0CfSKPIilZk__pB_aDKOydfYclBj1Wo)
+[Paper](paper/194_Scavenger_Hunt_Submission.pdf) | [Extended Abstract](paper/Extended_Abstract.pdf) | [Video](https://drive.google.com/drive/folders/1I0CfSKPIilZk__pB_aDKOydfYclBj1Wo) | [Slides](https://drive.google.com/drive/folders/1I0CfSKPIilZk__pB_aDKOydfYclBj1Wo)
 
 ![teaser](./images/README/teaser.png)
 
