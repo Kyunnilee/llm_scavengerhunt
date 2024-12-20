@@ -1,5 +1,6 @@
 import json
-def calculate_score_with_json(log_info:list[dict]):
+
+def json2str(log_info:list[dict]):
         shortest_step = log_info[1]["shortest_path"]
         agent_response = []
         for i in range(1, len(log_info)):
@@ -17,8 +18,8 @@ def calculate_score_with_json(log_info:list[dict]):
 
         return str(agent_response)
 
-with open("notable_outputs\log_infos_10.json", "r") as file:
-        data = json.load(file)
-    # print(type(data))
-print(repr(calculate_score_with_json(data)))
+# with open("notable_outputs/log_infos_10.json", "r") as file:
+#         data = json.load(file)
+#     # print(type(data))
+# print(repr(json2str(data)))
     
