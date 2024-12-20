@@ -4,7 +4,7 @@
 
 [Paper](paper/194_Scavenger_Hunt_Submission.pdf) | [Extended Abstract](paper/Extended_Abstract.pdf)| [Video](https://drive.google.com/drive/folders/1I0CfSKPIilZk__pB_aDKOydfYclBj1Wo) | [Slides](https://drive.google.com/drive/folders/1I0CfSKPIilZk__pB_aDKOydfYclBj1Wo)
 
-![teaser](images/README/teaser.png)
+![teaser](./images/README/teaser.png)
 
 Abstract: *We propose a novel open-source testing framework and benchmark in the field of Vision-Language Navigation (VLN) to evaluate the goal-seeking capabilities of Large Language Model (LLM) agents in real-world environments. To this end, we designed a QA agent that operates without relying on human supervision or data annotations, serving as a semantic heuristic function to provide navi-
 gational cues to the agent under evaluation. Additionally, we leveraged techniques such as Rein-forcement Learning with AI Feedback (RLAIF) to develop new metrics for detailed analysis of the agent’s progressive information acquisition, multimodal cross-inference, and spatial reasoning abilities. Experimental results demonstrate significant room for improvement in current LLM agents across these dimensions. Future work may explore enhancing LLMs’ visual perception capabilities and their alignment of spatial information with semantic understanding.*
@@ -74,7 +74,7 @@ python run_single_vis.py
 
 And you will see a web visualize of the testing process.
 
-![run_single_vis](images/README/run_single_vis.png)
+![run_single_vis](./images/README/run_single_vis.png)
 
 #### Run Batch Experiments
 
