@@ -259,7 +259,7 @@ questions_rubric = "Questions Asked: Evaluations are based on the quality of que
 if __name__=="__main__": 
     task_folder = "config/task/1215_experiment_1"
     task_names = parse_task_files(task_folder)
-    log_folder = "output/logs_backup"
+    log_folder = "output/logs"
     config = {
         "system_prompt": system_prompt,
         "model": "gpt-4o"
