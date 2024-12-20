@@ -21,6 +21,10 @@ python check_setup.py
 
 ### Dataset Setup
 
+The dataset is consisted of two parts: map and task.
+
+#### Map Setup
+
 We follow previous works and used the `touchdown` version dataset to express the map.
 
 The dataset is consisted of `nodes.txt` and `links.txt`. 
@@ -41,10 +45,16 @@ You should have your dataset path written in `config/map/<your_map_selection>.js
 
 ```json
 {
-    "node": "touchdown/graph/nodes.txt",
-    "link": "touchdown/graph/links.txt"
+    "node": "dataset/nodes.txt",
+    "link": "dataset/links.txt"
 }
 ```
+
+#### Task Setup
+
+Task is also a part of our dataset. This is mainly written in `config/task`, where it defines a lot of scavenger hunt targets for LLM to be tested on. Each task consists of `starting_panoids`, `start_heading`, `target_infos` and `arrival_threshold`.
+
+Tasks are usually generated on different levels: easy, medium and hard. They mainly differ in path length, number of corners, and how obvious the ta
 
 ### Run Experiments
 

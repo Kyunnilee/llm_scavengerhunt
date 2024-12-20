@@ -1,4 +1,4 @@
 {
-    "node": "touchdown/graph/nodes.txt",
-    "link": "touchdown/graph/links.txt"
+    "node": "dataset/nodes.txt",
+    "link": "dataset/links.txt"
 }
