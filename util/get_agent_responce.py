@@ -16,7 +16,7 @@ def get_agent_response(log_info:dict):
         return agent_response
         
 
-log_root = r'output\experiments_1215'
+log_root = r'output\logs'
 qa_data = []
 agent_response = []
 
@@ -27,7 +27,7 @@ for root, _, files in os.walk(log_root):
             with open(path, 'r') as f:
                 data = json.load(f)
             for info in data:
-                if "qa_messages" in info and len(info["qa_messages"]["question"]) > 2 :
+                if "qa_messages" in info:
                     qa_data.append(info["qa_messages"])
                     agent_response.append(get_agent_response(info))
 
@@ -37,4 +37,5 @@ with open("tmp/agent_response_exaples.json", "w") as f:
     
 with open("tmp/qa_data.json", "w") as f:
     json.dump(qa_data, f, indent=4)
+
 print(f"Num of QA data: {len(qa_data)}")

@@ -7,7 +7,6 @@ import re
 from graph_loader import GraphLoader, haversine
 
 api_key=os.environ.get("OPENAI_API_KEY")
-TODO = ""
 
 def extract_scores(text: str):
     score_pattern = r"\[evaluated_sc_begin\](.*?)\[evaluated_sc_end\]"
@@ -102,6 +101,7 @@ class AgentEvaluator:
             {"role": "system", "content": self.base_system_prompt},
             {"role": "user", "content": content}
         ]
+        print(full_message)
         scores = self.client.chat.completions.create(
             model=self.model,
             messages=full_message,
