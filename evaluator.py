@@ -26,7 +26,7 @@ def extract_scores(text: str):
 
     if score:
         score = score.group(1).strip()
-        print(score)
+        # print(score)
     else:   
         score = text 
     score_justification = re.search(score_justification_pattern, text, re.DOTALL | re.MULTILINE)
@@ -112,7 +112,7 @@ class AgentEvaluator:
         result_group = extract_scores(result_text)
         result = result_group
         print("Evaluation Results: ", result)
-        print(type(result))
+        # print(type(result))
         return result
     
     def calculate_score_with_json(self, log_info:list[dict]):
@@ -172,7 +172,7 @@ class AgentEvaluator:
         #num_questions, num_steps = self.evaluate_misc(total_response, shortest_step, num_steps, num_questions)
         num_questions_score = num_q/num_steps
         num_steps_score = min(shortest_step.count("forward") / num_steps, 1)
-        print(f"num_questions_score: {num_questions_score}, num_steps_score: {num_steps_score}")
+        # print(f"num_questions_score: {num_questions_score}, num_steps_score: {num_steps_score}")
         action_score, justification_action = self.evaluate_response(["[ACTION]"] + total_response)
         proactive_score, justification_proactive = self.evaluate_response(["[Q_PROACTIVE]"] + total_response)
         clarification_score, justification_clarification = self.evaluate_response(["[Q_CLARIFICATION]"] + total_response)
@@ -180,11 +180,11 @@ class AgentEvaluator:
         #print(proactive_score)
         question_score = (int(proactive_score) + int(clarification_score))/2
         justification_question = "Proactive: " + justification_proactive + "Clarification: " + justification_clarification
-        if debug:
-            print("Action Score: ", action_score)
-            print("Action Justification: ", justification_action)
-            print("Question Score: ", question_score)
-            print("Question Justification: ", justification_question)
+        # if debug:
+        #     print("Action Score: ", action_score)
+        #     print("Action Justification: ", justification_action)
+        #     print("Question Score: ", question_score)
+        #     print("Question Justification: ", justification_question)
 
         return num_questions_score, num_steps_score, action_score, question_score
     
@@ -262,7 +262,7 @@ if __name__=="__main__":
     log_folder = "output/logs_backup"
     config = {
         "system_prompt": system_prompt,
-        "model": "gpt-4o-mini"
+        "model": "gpt-4o"
     }
     evaluator = AgentEvaluator(config)
     
