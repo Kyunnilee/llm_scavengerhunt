@@ -3,6 +3,8 @@
 from graph_loader import GraphLoader, haversine
 from openai import OpenAI
 from util.json2str import json2str
+from tqdm import tqdm
+
 import os
 import json
 import ast
@@ -291,7 +293,7 @@ if __name__=="__main__":
         }
     }
 
-    for root, _, files in os.walk(log_folder):
+    for root, _, files in tqdm(os.walk(log_folder)):
         for file in files:
             if file.endswith(".json"):
                 try:
@@ -349,6 +351,7 @@ if __name__=="__main__":
     # Output final results
     print("Final Results:")
     print(json.dumps(final_results, indent=4))
+    print(cumulative_results)
 
     # error_log = r"output\logs_backup\run_batch_4\20241216-073752_logs\log_infos_82.json"
     # fail_log = r"output\logs_backup\run_batch_4\20241216-175030_logs\log_infos_151.json"
