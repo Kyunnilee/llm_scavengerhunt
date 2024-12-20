@@ -333,7 +333,7 @@ if __name__=="__main__":
                                 )
                 except Exception as e:
                     print(f"Error processing {log_path}: {e}")
-                    raise e
+                    continue
 
     # Calculate averages
     final_results = {}
